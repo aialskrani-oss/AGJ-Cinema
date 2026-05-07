@@ -1,0 +1,168 @@
+You are my elite React + TypeScript developer. I need you to transform my "AGJ Cinema" app into a world-class streaming platform. Build the most advanced video player imaginable, a complete favorites system, and full Arabic subtitle controls. Do NOT break any existing functionality. Give me a detailed Arabic summary when done.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 1: THE WORLD'S BEST VIDEO PLAYER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+REWRITE `src/components/MoviePlayer.tsx` FROM SCRATCH. This is the core. Make it legendary.
+
+**A. Control Bar (auto-hides after 3 seconds of inactivity):**
+- Bottom bar: gradient from transparent to black/80, height 60px.
+- Left side: Play/Pause button (changes icon based on state), Skip Back 10s button, Skip Forward 10s button, Volume button with slider.
+- Center: Current time "1:23:45" / Total time "2:10:30".
+- Right side: Subtitles toggle button, Settings gear button, Fullscreen button.
+- Settings popup menu:
+  - Playback Speed: 0.5x, 0.75x, 1x, 1.25x, 1.5x, 2x. Current speed highlighted in cyan.
+  - Quality: Auto, 1080p, 720p, 480p, 360p (visual only, doesn't change actual stream unless VidAPI supports it — just UI).
+  - Subtitles: Arabic, English, Off.
+- All controls have smooth hover effects (scale, color change).
+- On mobile: buttons are larger (min 44px touch target). Volume slider is horizontal below the bar.
+
+**B. Progress Bar:**
+- A slim bar (h-1, expands to h-2 on hover) above the control bar.
+- Shows buffered progress in gray, watched progress in cyan.
+- A draggable thumb appears on hover. User can click/drag to seek.
+- When hovering over the progress bar, show a thumbnail preview of that timestamp (use VidAPI's thumbnail feature if available, or just show a tooltip with time).
+
+**C. Center Play Button:**
+- Large Play/Pause button appears in the center of the screen when video is paused.
+- Fades out after 3 seconds when playing.
+- Also appears briefly on click/tap anywhere on the video.
+
+**D. Ambient Light Effect:**
+- The overlay background (bg-black/95) softly pulses with a subtle gradient based on the iframe content.
+- Since we can't access iframe pixels, simulate it: every 10 seconds, shift the background gradient subtly (from cyan/blue to red/purple and back) giving a cinematic ambient feel.
+
+**E. Smart Features:**
+- On mount: check `localStorage.getItem(\`progress_${movieId}\`)`.
+  - If progress exists AND progress > 60 seconds AND progress < 95% of duration: show a modal "Continue watching from 45:30?" with two buttons: "Resume" (appends `&resumeAt=` to iframe URL) and "Start Over".
+- Save progress every 5 seconds via the VidAPI postMessage listener.
+- Track total watch time and save to localStorage key `watchTime_{movieId}`.
+- Keyboard shortcuts:
+  - Space / K: Toggle play/pause
+  - ArrowRight / L: Forward 10 seconds
+  - ArrowLeft / J: Backward 10 seconds
+  - F: Toggle fullscreen
+  - M: Toggle mute
+  - Escape: Close player
+  - Up/Down arrows: Volume up/down
+
+**F. Report & Help:**
+- Small "Report issue" link (text-white/30, text-xs) at bottom-right corner. Opens mailto with subject "AGJ Cinema - Issue - {title}".
+- "Keyboard shortcuts" link that shows a small modal with all shortcuts.
+- If iframe fails to load after 8 seconds, show "Stream is taking too long. Try refreshing or choose another source." with a "Retry" button.
+
+**G. Title Bar:**
+- Top-left: Movie title in white/90, semibold, with a small "AGJ Cinema" badge in cyan.
+- Top-right: Close (X) button, red bg on hover.
+- Both fade out with the controls after 3 seconds.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 2: COMPLETE FAVORITES SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CREATE `src/hooks/useFavorites.ts`:
+- Import useAuth.
+- Store favorites per user: localStorage key `agj_favorites_{username}` as JSON array of Movie objects.
+- Store watchlist: localStorage key `agj_watchlist_{username}` as JSON array of {movie, progress, lastWatched, completed: boolean}.
+- Functions:
+  - getFavorites(): returns Movie[]
+  - addFavorite(movie): adds if not exists, saves
+  - removeFavorite(movieId): removes by id, saves
+  - isFavorite(movieId): returns boolean
+  - toggleFavorite(movie): add/remove
+  - getWatchlist(): returns array
+  - addToWatchlist(movieId, progress): adds/updates entry
+  - removeFromWatchlist(movieId): removes
+  - getWatchProgress(movieId): returns progress in seconds or 0
+
+**UPDATE `src/pages/MovieDetails.tsx`:**
+- The "My List" button:
+  - If not logged in: navigates to /login.
+  - If logged in and NOT favorite: shows Plus icon + "Add to Favorites" text. Clicking adds.
+  - If logged in and IS favorite: shows Heart icon (filled, red) + "Remove from Favorites" text. Clicking removes.
+- After adding/removing, show a small toast notification (create a simple Toast component or use a div that appears and fades): "✓ Added to Favorites" or "✗ Removed from Favorites".
+
+**UPDATE `src/components/MovieCard.tsx`:**
+- Add a small Heart icon overlay on the top-right corner of the poster.
+- Appears on hover (desktop) or always visible (mobile).
+- If favorited: filled red heart ❤️.
+- If not: outlined white heart 🤍.
+- Clicking toggles favorite status.
+- If not logged in, clicking navigates to /login.
+
+**REWRITE `src/pages/MyList.tsx`:**
+- Import useFavorites and useAuth.
+- If not logged in: same as before (Sign in prompt).
+- If logged in:
+  - Top: Username header with total count. "{username}'s Library".
+  - Three tabs: "Watchlist" (clock icon), "Favorites" (heart icon), "History" (check icon).
+  - **Watchlist tab**: Shows movies with progress bar. Ordered by most recently watched. Each card shows: poster, title, progress bar (cyan), "Continue" button. Empty state: "No movies in progress. Start watching!".
+  - **Favorites tab**: Shows all favorited movies in a responsive grid: 3 cols mobile, 4 tablet, 5 desktop. Each card has a small X button (top-right) to remove. Empty state: "Your favorites list is empty. Discover movies to add!".
+  - **History tab**: Shows completed movies. Each with: poster, title, "Watched on {date}" text, "Watch Again" button. Empty state: "No watched movies yet."
+
+**UPDATE `src/components/MoviePlayer.tsx`:**
+- When progress is saved (via postMessage), also call `addToWatchlist(movieId, progress)`.
+- When video reaches "completed" status (from postMessage), mark as completed in watchlist (set completed: true, save finished date).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 3: ADVANCED ARABIC SUBTITLE CONTROLS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**In `src/components/MoviePlayer.tsx` (Settings menu):**
+- The Subtitles section in the Settings popup:
+  - "Arabic" (default, active → cyan highlight)
+  - "English"
+  - "Off"
+- When user changes subtitle language, update the iframe URL accordingly:
+  - Arabic: `&ds_lang=ar&sub_lang=ar`
+  - English: `&ds_lang=en&sub_lang=en`
+  - Off: remove ds_lang and sub_lang params
+- This requires reloading the iframe with the new URL. Add a subtle transition during reload (brief fade out/in).
+
+**In `src/pages/Home.tsx` and `src/pages/MovieDetails.tsx`:**
+- Keep the default as Arabic: `&ds_lang=ar&sub_lang=ar`.
+
+**Create a Subtitle Sync Helper (inside MoviePlayer, a small UI):**
+- Two small buttons: "+0.5s" and "-0.5s" that appear when subtitles are enabled.
+- These adjust a local offset state.
+- Since VidAPI may not support offset directly, show a tooltip: "Use this to adjust if subtitles are out of sync."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 4: TOAST NOTIFICATION SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CREATE `src/components/Toast.tsx`:
+- A simple toast notification component.
+- Appears at the bottom-center of the screen.
+- Dark bg, white text, rounded-xl, shadow-2xl.
+- Shows for 2.5 seconds, then fades out.
+- Types: success (green checkmark), error (red X), info (cyan i).
+- Used for: "Added to Favorites", "Removed from Favorites", "Sign in required", etc.
+
+CREATE `src/contexts/ToastContext.tsx`:
+- Context with: showToast(message, type).
+- Wrap in App.tsx with ToastProvider.
+- Export useToast hook.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 5: FINAL POLISH & VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [ ] MoviePlayer has ALL controls described, with auto-hide.
+- [ ] Keyboard shortcuts work.
+- [ ] Resume modal appears when returning to a movie.
+- [ ] Favorites can be added/removed from cards, details page, and MyList.
+- [ ] MyList has 3 tabs with real data.
+- [ ] Watch progress is saved and displayed.
+- [ ] Arabic subtitles are default, can be changed in player settings.
+- [ ] Toast notifications appear for all actions.
+- [ ] Ambient light effect is subtle and cinematic.
+- [ ] Report issue link works in player.
+- [ ] All existing pages still work.
+- [ ] Zero ads.
+- [ ] App name "AGJ Cinema" preserved everywhere.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Give me an extremely detailed Arabic summary of everything you built, all new files created, all files modified, and any performance considerations.

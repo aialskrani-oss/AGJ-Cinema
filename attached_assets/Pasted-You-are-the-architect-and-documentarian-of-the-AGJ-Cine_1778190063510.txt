@@ -1,0 +1,57 @@
+You are the architect and documentarian of the "AGJ Cinema" project. Your task is to generate a COMPLETE, EXHAUSTIVE, and ULTRA-DETAILED technical documentation of the entire codebase. Leave NOTHING out. This document must be so complete that another AI could rebuild or fully understand the project from it.
+
+Go through the entire project file by file. For each and every file, provide:
+
+1. The full file path (e.g., src/components/MoviePlayer.tsx).
+2. The exact complete code of the file (do not abbreviate, do not use "...", do not skip any lines).
+3. A detailed plain-Arabic explanation of:
+   - The purpose of this file in the overall architecture.
+   - Every import and what it does.
+   - Every function, hook, component, and type/interface.
+   - Every prop and what it expects.
+   - Every state variable and its role.
+   - Every useEffect and exactly when it runs/cleans up.
+   - Every conditional render and what it checks.
+   - How this file connects to and communicates with other files.
+   - Any tricky logic and why it's written that way.
+   - Any external dependencies (APIs, localStorage, environment variables) and how they're used.
+
+After you have documented every single file, provide these comprehensive summaries in Arabic:
+
+1. **Project Philosophy & Vision**: What AGJ Cinema aims to be. The design philosophy. The target user experience.
+
+2. **Complete Architecture Map**: A visual tree of every folder and file with a one-line summary of each. Explain the data flow: how does a user click lead to a movie playing?
+
+3. **The Movie Streaming Flow (The Most Critical Path)**: Explain step-by-step, from the user clicking "Play" on a movie card to the iframe appearing with the correct stream. Include every file, function, hook, state change, and API call involved.
+
+4. **The Authentication System Flow**: Step-by-step, how does login/register/logout work? Where is data stored? How do components react to auth state changes?
+
+5. **The Favorites System Flow**: Step-by-step, how is a movie favorited? Where is it stored? How does the MyList page display it? What happens when a guest tries to favorite?
+
+6. **The Search System Flow**: From typing a letter to seeing results. Include debouncing, API calls, state updates, and navigation.
+
+7. **The PWA and Service Worker Strategy**: What caching strategies are used? What domains are blocked for ads? How is the install prompt triggered?
+
+8. **Environment Variables Reference**: Every variable, where it's used, what it controls, and an example value.
+
+9. **TMDB API Usage Map**: Every endpoint called, which hook calls it, the query keys used, and the data returned.
+
+10. **VidAPI Integration Guide**: The exact URL patterns for movies and TV shows. All query parameters supported. How subtitles and resume work. The postMessage event structure for progress tracking.
+
+11. **Component Tree & Hierarchy**: Parent-child relationships for every component. Which components render which.
+
+12. **State Management Map**: Every piece of global state (Contexts), every piece of local state (useState/useReducer), and every piece of server state (React Query). How they interact.
+
+13. **Styling System Deep Dive**: Every custom CSS variable. The purpose of each Tailwind utility class pattern. The glassmorphism implementation. The dark theme specification. Responsive breakpoints usage.
+
+14. **Error Handling Strategy**: How API errors, missing data, and edge cases are handled throughout the app. What error boundaries exist.
+
+15. **Performance Optimizations Applied**: Where useMemo, useCallback, React.memo, lazy loading, code splitting, and requestAnimationFrame are used.
+
+16. **Current Technical Debt & Known Issues**: The auth simulation limitation. The Replit sleep issue. The iframe cross-origin restrictions. Any code that needs improvement.
+
+17. **Future Development Roadmap**: Based on the codebase, what features are partially implemented? What would be the next logical steps?
+
+18. **A "Quick-Start" Rebuild Guide**: If someone had to rebuild this project from scratch in one day, what is the exact order of files to create?
+
+CRITICAL: Do NOT summarize the code. Provide the FULL code for EVERY file. Your entire output must be the complete source code plus this documentation. I need to be able to hand this to another AI and have them fully understand and replicate the project.

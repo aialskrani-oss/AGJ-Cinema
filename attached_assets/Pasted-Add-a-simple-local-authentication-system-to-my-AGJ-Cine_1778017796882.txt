@@ -1,0 +1,111 @@
+Add a simple local authentication system to my "AGJ Cinema" app. This is frontend-only, using localStorage. No backend, no Firebase, no real authentication.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT TO BUILD:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. CREATE `src/contexts/AuthContext.tsx`:
+   - Create a React context with these values:
+     - `user`: object `{ username: string }` or `null`
+     - `isLoggedIn`: boolean
+     - `login`: function that takes (username: string, password: string) and returns boolean
+     - `logout`: function
+     - `register`: function that takes (username: string, password: string) and returns boolean
+   - On mount, check `localStorage.getItem('agj_user')` to restore session.
+   - `login` function:
+     - Get users from `localStorage.getItem('agj_users')` (parse JSON, default to empty array).
+     - Find user where username AND password match.
+     - If found, save to `localStorage.setItem('agj_user', JSON.stringify(user))` and return true.
+     - If not found, return false.
+   - `register` function:
+     - Get users from localStorage.
+     - Check if username already exists. If yes, return false.
+     - Add new user `{ username, password }` to the array.
+     - Save back to localStorage.
+     - Auto-login the new user (save to agj_user).
+     - Return true.
+   - `logout` function:
+     - Remove `agj_user` from localStorage.
+     - Set user state to null.
+   - Export `useAuth` hook that returns the context.
+
+2. CREATE `src/pages/Login.tsx`:
+   - A beautiful login page with dark theme matching the app.
+   - Centered card: `bg-[#181818] rounded-2xl p-8 max-w-sm mx-auto mt-20`.
+   - Logo at top: "AGJ Cinema" (cyan + white, bold, text-2xl).
+   - Tabs or toggle between "Sign In" and "Register" modes.
+   - **Sign In mode:**
+     - Username input (glass bg, white text, placeholder "Username").
+     - Password input (type=password, glass bg, placeholder "Password").
+     - "Sign In" button (cyan bg, white text, rounded-xl, full width).
+     - If login fails, show error message in red: "Invalid username or password".
+   - **Register mode:**
+     - Username input.
+     - Password input.
+     - Confirm password input.
+     - "Create Account" button (cyan bg, white text, rounded-xl, full width).
+     - Validate: password must be 4+ characters, confirm password must match, username must be 3+ characters.
+     - If username already exists, show red error: "Username already taken".
+     - If registration succeeds, show green success message briefly, then switch to logged-in state.
+   - After successful login or register, redirect to home page (`/`) using wouter's `useLocation`.
+   - The page should have a back button (ArrowLeft) to go home for users who don't want to log in.
+
+3. UPDATE `src/App.tsx`:
+   - Import AuthProvider and wrap the entire app with it.
+   - Import Login page.
+   - Add route: `/login` → Login (lazy loaded).
+   - Create a `ProtectedRoute` wrapper component:
+     - If user is NOT logged in, redirect to `/login` using `<Redirect>` from wouter.
+     - If user IS logged in, render the children.
+
+4. UPDATE `src/components/Navbar.tsx`:
+   - Import `useAuth`.
+   - If NOT logged in: show "Sign In" button (text-cyan-400, border border-cyan-400, rounded-lg, px-4 py-1.5, text-sm). Clicking navigates to `/login`.
+   - If logged in: replace the "A" avatar with the first letter of the username. Show the username next to it (truncated if long, max 10 chars). Click navigates to `/profile`.
+   - Remove the placeholder Bell icon (keep only if logged in, decorative).
+
+5. UPDATE `src/components/BottomNav.tsx`:
+   - If NOT logged in: the "My List" and "Profile" tabs should navigate to `/login` instead of `/list` and `/profile`.
+   - If logged in: they work normally.
+
+6. UPDATE `src/pages/Profile.tsx`:
+   - Import `useAuth`.
+   - If NOT logged in: show "Sign in to AGJ Cinema" message with a "Sign In" button that navigates to `/login`.
+   - If logged in:
+     - Avatar circle: first letter of username, gradient cyan to blue.
+     - Name: show `user.username` instead of "Movie Fan".
+     - Email line: hide it (since we don't have email in this system).
+     - Settings list remains the same.
+     - "Log Out" button: calls `logout()` and navigates to home.
+
+7. UPDATE `src/pages/MyList.tsx`:
+   - Import `useAuth`.
+   - If NOT logged in: show "Sign in to save your favorites" with a Sign In button.
+   - If logged in: show "{user.username}'s List is Empty" as the title instead of "My List is Empty".
+
+8. UPDATE `src/pages/Home.tsx` and `src/pages/MovieDetails.tsx`:
+   - The "My List" / "Plus" buttons should be disabled or show a tooltip "Sign in to add to list" if user is not logged in.
+   - If logged in, they can add/remove from a list saved in localStorage keyed by username.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORTANT RULES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- NO Firebase, NO backend, NO external auth service.
+- All data stored in localStorage only.
+- This is NOT real security. It's a simple frontend-only simulation.
+- Store users as: `localStorage.setItem('agj_users', JSON.stringify([{username: "ali", password: "1234"}]))`.
+- Store current session as: `localStorage.setItem('agj_user', JSON.stringify({username: "ali"}))`.
+- NEVER store passwords in plain text in real apps — but for this simulation it's fine.
+- Keep all existing functionality intact. Only ADD auth features, don't break anything.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- User can register a new account (username + password).
+- User can log in with that account.
+- Wrong password shows error message.
+- Duplicate username shows error message.
+- Logging in shows username in navbar and Profile page.
+- Logging out clears everything and returns to guest state.
+- "My List" and "Profile" tabs redirect to login for guests.
+- All existing movie browsing still works without logging in.

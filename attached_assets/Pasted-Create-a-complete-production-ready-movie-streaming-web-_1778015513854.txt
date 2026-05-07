@@ -1,0 +1,270 @@
+Create a complete, production-ready movie streaming web application from scratch. Do not use any template. Build everything exactly as specified below. Follow every instruction in order. After completion, give me a detailed summary in Arabic of everything you built.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROJECT: AGJ Cinema
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TECH STACK:
+- React + TypeScript + Vite
+- Tailwind CSS v4
+- Wouter for routing (lightweight)
+- React Query (TanStack Query) for data fetching
+- Lucide React for icons
+- No database needed, pure frontend
+
+ENVIRONMENT VARIABLES (.env file):
+Create a .env file with these exact variables:
+- VITE_TMDB_API_KEY=(ask me to provide this value)
+- VITE_STREAM_BASE_URL=https://vaplayer.ru/embed/movie/
+- VITE_STREAM_PRIMARY_COLOR=%23e50914
+- VITE_STREAM_DEFAULT_LANG=en
+- VITE_APP_NAME=AGJ Cinema
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FILE STRUCTURE (create ALL these files):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/
+├── api/
+│   └── tmdb.ts              (TMDB API layer)
+├── hooks/
+│   └── useTmdb.ts           (React Query hooks)
+├── components/
+│   ├── Navbar.tsx            (Top navigation with search)
+│   ├── BottomNav.tsx         (Mobile bottom navigation)
+│   ├── HeroBanner.tsx        (Featured movie hero with parallax)
+│   ├── MovieCard.tsx         (Individual movie card)
+│   ├── MovieRow.tsx          (Horizontal scrolling row)
+│   └── MoviePlayer.tsx      (Full-screen iframe player)
+├── pages/
+│   ├── Home.tsx              (Main page with hero + rows)
+│   ├── MovieDetails.tsx      (Movie detail page)
+│   ├── Search.tsx            (Full search page)
+│   ├── MyList.tsx            (Watchlist placeholder)
+│   ├── Profile.tsx           (User profile placeholder)
+│   └── NotFound.tsx          (404 page)
+├── App.tsx                   (Main app with routing)
+├── index.css                 (Tailwind + custom styles)
+└── main.tsx                  (Entry point)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DETAILED SPECS FOR EACH FILE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. index.css:
+   - Import tailwindcss, tw-animate-css, and tailwindcss/typography plugin.
+   - Define a dark Netflix-style theme with CSS variables.
+   - Background: #141414. Text: white/95. Cards: #181818.
+   - Primary accent: Cyan (#06b6d4 / cyan-400).
+   - Navigation: #0a0a0a with glassmorphism (backdrop-blur-lg bg-black/70).
+   - Smooth scrolling enabled globally.
+   - Custom fadeIn animation: from opacity 0 to opacity 1.
+   - Hide scrollbar utility class for horizontal rows.
+   - Base layer: body uses antialiased, bg-background, text-foreground.
+
+2. api/tmdb.ts:
+   - Create a tmdb object with:
+     - BASE_URL = "https://api.themoviedb.org/3"
+     - API_KEY = import.meta.env.VITE_TMDB_API_KEY
+     - imgUrl(path, size) function: returns "https://image.tmdb.org/t/p/" + size + path
+   - Export type Movie with: id, title, overview, poster_path, backdrop_path, release_date, vote_average, vote_count, genre_ids, adult, runtime, tagline, genres, status.
+   - Export async functions:
+     - getTrending(): fetch trending movies of the week.
+     - getTopRated(): fetch top rated movies.
+     - getPopular(): fetch popular movies.
+     - getNowPlaying(): fetch now playing movies.
+     - getUpcoming(): fetch upcoming movies.
+     - getMovieDetails(id): fetch movie details with credits appended.
+     - getSimilar(id): fetch similar movies.
+     - getVideos(id): fetch movie videos (trailers).
+     - searchMovies(query): search movies with the query string.
+
+3. hooks/useTmdb.ts:
+   - Import all functions from api/tmdb.ts.
+   - Export custom hooks using useQuery from @tanstack/react-query:
+     - useTrending() → key: ["trending"], fn: getTrending
+     - useTopRated() → key: ["top-rated"], fn: getTopRated
+     - usePopular() → key: ["popular"], fn: getPopular
+     - useNowPlaying() → key: ["now-playing"], fn: getNowPlaying
+     - useUpcoming() → key: ["upcoming"], fn: getUpcoming
+     - useMovieDetails(id) → key: ["movie", id], fn: getMovieDetails, enabled: id > 0
+     - useSimilar(id) → key: ["similar", id], fn: getSimilar, enabled: id > 0
+     - useVideos(id) → key: ["videos", id], fn: getVideos, enabled: id > 0
+     - useSearch(query) → key: ["search", query], fn: searchMovies, enabled: query.length > 2
+   - All queries: staleTime: 5 minutes, retry: 1.
+
+4. components/Navbar.tsx:
+   - Fixed top navigation bar.
+   - Background transitions on scroll: transparent (top) → bg-[#0a0a0a] (scrolled past 20px).
+   - Left side: Logo "AGJ Cinema" with "AGJ" in cyan-400 and "Cinema" in white. Font: bold, text-2xl, tracking-wider. Clicking logo navigates to home.
+   - Desktop nav links: Home, Movies, TV Shows, My List. Hidden on mobile.
+   - Right side: Search icon button. When clicked, expands to a search input with glassmorphism background, autofocused. Shows X button to close.
+   - Search dropdown: When typing (query > 1 char), show results below. 3 columns grid on mobile, single column rows on desktop. Each result shows poster thumbnail, title, year, rating. Max 9 results. Clicking a result navigates to /movie/{id} and closes search.
+   - Bell icon (decorative).
+   - Profile avatar: gradient circle with letter "A".
+   - All icons from lucide-react.
+   - z-index: z-40.
+
+5. components/BottomNav.tsx:
+   - Fixed bottom navigation, visible only on mobile (md:hidden).
+   - Glassmorphism: backdrop-blur-lg bg-black/70 border-t border-gray-800.
+   - 4 items: Home (Home icon, path "/"), Search (Search icon, "/search"), My List (Bookmark icon, "/list"), Profile (User icon, "/profile").
+   - Active item: text-cyan-400, icon scaled up (scale-110), strokeWidth 2.5.
+   - Inactive: text-gray-500, strokeWidth 1.8, hover:text-gray-300.
+   - Each item has icon and label text (text-[10px]).
+   - z-index: z-40.
+
+6. components/HeroBanner.tsx:
+   - Props: movies (Movie[]), onPlay (callback with Movie param).
+   - Shows featured movie from the array, rotating every 8 seconds.
+   - Backdrop image with parallax effect: translateY calculated from window.scrollY * 0.35 in a requestAnimationFrame loop.
+   - Gradient overlays: from-black/80 on left, from-[#141414] on bottom.
+   - Content overlay near bottom-left:
+     - Title: text-3xl to text-6xl, font-black, white, drop-shadow.
+     - Meta: match percentage (green), year, age rating badge.
+     - Overview: truncated to 3 lines.
+     - Two buttons: "Play" (white bg, black text, Play icon) and "More Info" (glass bg, white text, Info icon).
+   - Dot indicators bottom-right: white dots, active dot is cyan and longer.
+   - Play calls onPlay(featured). More Info navigates to /movie/{id}.
+
+7. components/MovieCard.tsx:
+   - Props: movie (Movie), onSelect (navigate), onPlay (play).
+   - Width: clamp(120px, 15vw, 200px). flex-shrink-0.
+   - Poster: rounded-2xl, aspect-[2/3], overflow-hidden, shadow-xl.
+   - On hover (desktop only): shows an expanded card. Absolute positioned, w-64, bg-[#181818], rounded-2xl, with backdrop image, action buttons (Play, Plus, ThumbsUp, ChevronDown), match %, age badge, year, overview truncated.
+   - Mobile: active:scale-95 transition.
+   - Lazy loading on images: loading="lazy".
+   - Smooth fade-in on image load.
+   - Clicking poster calls onSelect. Clicking Play calls onPlay.
+
+8. components/MovieRow.tsx:
+   - Props: title (string), movies (Movie[]), onSelect, onPlay.
+   - Title: white, semibold, text-lg, px-4 md:px-12, mb-3.
+   - Horizontal scrollable container: flex, overflow-x-auto, gap-2 md:gap-3, no scrollbar.
+   - Left/right arrow buttons: absolute positioned, bg-black/50, opacity-0 group-hover:opacity-100. Scroll by 75% of container width on click.
+   - Shows arrows conditionally based on scroll position.
+
+9. components/MoviePlayer.tsx:
+   - Props: url (string), title (string), onClose (callback), movieId (number), resumeProgress (number, optional).
+   - Full-screen overlay: fixed inset-0 z-50, bg-black/95, transition opacity 300ms.
+   - Inner container: relative, w-full h-full max-w-6xl max-h-[90vh], p-2 md:p-4.
+   - Close button: absolute top-2 right-2, bg-red-600 rounded-full p-2, X icon, white.
+   - Title: absolute top-2 left-4, white/80, semibold.
+   - iframe: w-full h-full rounded-xl, allowFullScreen, allow="autoplay; encrypted-media; fullscreen; picture-in-picture".
+   - Build iframe src with resumeAt param if resumeProgress > 0.
+   - Push window.history.state when opening. Listen for popstate to close on back button.
+   - Listen for window 'message' events:
+     - If event.data.type === 'PLAYER_EVENT' and status is 'playing', save progress to localStorage key: progress_{movieId}.
+   - Escape key closes player too.
+   - Clean up all listeners on unmount.
+
+10. pages/Home.tsx:
+    - Uses hooks: useTrending, useTopRated, usePopular, useNowPlaying, useUpcoming.
+    - State: playingMovieId (number | null), playingMovieTitle (string).
+    - Construct stream URL: `${VITE_STREAM_BASE_URL}${playingMovieId}?primaryColor=${VITE_STREAM_PRIMARY_COLOR}&lang=${VITE_STREAM_DEFAULT_LANG}`
+    - Check localStorage for saved progress before playing.
+    - Renders: HeroBanner (with trending movies slice 0-5), then rows: Trending Now, Now Playing, Popular on AGJ Cinema, Top Rated, Coming Soon.
+    - Each row gets onSelect → navigate to /movie/{id}, onPlay → set playingMovieId.
+    - MoviePlayer rendered conditionally when playingMovieId is set.
+    - animate-fadeIn on the page wrapper.
+
+11. pages/MovieDetails.tsx:
+    - Gets id from useParams. Uses useMovieDetails(id), useSimilar(id), useVideos(id).
+    - Loading state: centered spinner (cyan border).
+    - Not found state: "Movie not found" + go home button.
+    - Backdrop hero: h-[55vh] md:h-[70vh], with gradient overlays.
+    - Back button: top-20 left-4, glass effect, ArrowLeft icon + "Back".
+    - Content section with negative margin to overlap hero:
+      - Poster on left (hidden on mobile): w-56 lg:w-72, rounded-2xl.
+      - Info: title (3xl-5xl, black, white), tagline (italic, gray), meta row (rating stars, runtime, year, age badge, status badge), genres (pill badges), overview (text-white/80), cast grid (circles with photos or initials).
+    - Action buttons: Play (white bg, black text), My List (glass, white), Like (circle border).
+    - Trailer link if available: "Watch Trailer on YouTube →" in cyan.
+    - Similar movies row at bottom using MovieRow.
+    - MoviePlayer: same dynamic URL logic as Home. Uses id from params as TMDB ID.
+    - animates-fadeIn.
+
+12. pages/Search.tsx:
+    - Full page search.
+    - Search bar at top: sticky, glassmorphism bg, autofocused. Search icon left, input center, X clear button right.
+    - Uses useSearch hook with debounced query (400ms via useState + setTimeout).
+    - Results grid: 3 cols mobile, 4 tablet, 5 desktop.
+    - Each result: poster image, title below (truncated), year. Click navigates to /movie/{id}.
+    - Empty state (no query): Large Search icon, "Search for your favorite movies", suggestion chips: Action, Comedy, Horror, Sci-Fi, Romance. Clicking chip sets query.
+    - No results state: "No results found for [query]".
+
+13. pages/MyList.tsx:
+    - Centered content, full screen height.
+    - Bookmark icon (w-16 h-16, text-gray-600).
+    - Title: "My List is Empty" (white, text-xl, font-bold).
+    - Subtitle: "Save movies and shows to watch them later." (text-gray-500).
+
+14. pages/Profile.tsx:
+    - Dark background.
+    - Profile card: bg-[#181818], rounded-2xl, p-6, max-w-md, mx-auto, mt-8.
+    - Avatar circle: w-20 h-20, gradient cyan to blue, letter "A" centered.
+    - Name: "Movie Fan". Email: "fan@agjcinema.com".
+    - Settings card below:
+      - Account row with ChevronRight.
+      - App Settings row with toggle switch (div: rounded-full, w-11 h-6, bg-gray-600 default, bg-cyan-400 when toggled). Subtitle: "Download via Wi-Fi only".
+      - About row with ChevronRight.
+      - Log Out row with red text. Red hover.
+
+15. pages/NotFound.tsx:
+    - Centered content. Large "404" in Netflix red. "Lost your way?" message. "AGJ Cinema Home" button.
+
+16. App.tsx:
+    - Import all pages with React.lazy().
+    - Wrap in Suspense with a loading spinner fallback.
+    - Routes:
+      - "/" → Home
+      - "/movie/:id" → MovieDetails
+      - "/search" → Search
+      - "/list" → MyList
+      - "/profile" → Profile
+      - "*" → NotFound
+    - Use Switch and Route from wouter.
+
+17. main.tsx:
+    - Standard Vite entry. Import React, ReactDOM, QueryClientProvider, App, index.css.
+    - Create QueryClient with default options: refetchOnWindowFocus: false, retry: 1.
+
+18. index.html:
+    - Title: "AGJ Cinema - Watch Movies".
+    - Meta viewport.
+    - Favicon emoji: 🎬
+    - Link to Tailwind CDN if needed, otherwise rely on Vite CSS import.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CRITICAL RULES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- NO hardcoded sample video URLs (no BigBuckBunny).
+- ALWAYS construct streaming URL dynamically using TMDB ID + VITE_STREAM_BASE_URL.
+- NO <video> HTML tag anywhere. Use ONLY <iframe> for playback.
+- ZERO advertisements, promo text, or sponsored sections.
+- App name "AGJ Cinema" must appear in title, logo, footer, and 404 page.
+- Use Tailwind classes ONLY. No custom CSS except in index.css.
+- Every image must have loading="lazy" and alt text.
+- Code must be modular, clean, with TypeScript types.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUILD ORDER:
+1. Create .env file first (ask me for TMDB key if needed, or use a placeholder).
+2. Build index.css.
+3. Build api/tmdb.ts.
+4. Build hooks/useTmdb.ts.
+5. Build ALL components.
+6. Build ALL pages.
+7. Build App.tsx and main.tsx.
+8. Install dependencies: react, react-dom, @types/react, @types/react-dom, typescript, vite, @vitejs/plugin-react, tailwindcss, @tailwindcss/typography, tw-animate-css, wouter, @tanstack/react-query, lucide-react.
+9. Test that everything compiles without errors.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After you finish, give me a detailed summary in Arabic of:
+- The complete file structure you created.
+- How the dynamic streaming works (TMDB ID → VidAPI).
+- How the progress tracking and resume feature works.
+- Confirmation that all 6 pages exist.
+- Confirmation that BottomNav works without 404 errors.
+- Confirmation of zero ads and correct app name.
+- Any notes or warnings I should know.

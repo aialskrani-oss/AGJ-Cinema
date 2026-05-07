@@ -1,0 +1,132 @@
+You are now a senior code auditor and React specialist. I need you to perform a complete, thorough audit of my entire "AGJ Cinema" project. Go through EVERY file, find ALL problems, fix them, and improve anything you see that could be better.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1: COMPLETE CODE AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Go through EVERY file in the `src/` directory one by one. Check for:
+   - TypeScript errors or missing types
+   - Unused imports or variables
+   - Missing dependencies in useEffect hooks
+   - Potential memory leaks (missing cleanup functions)
+   - Incorrect React Query usage
+   - Missing error handling
+   - Accessibility issues (missing aria labels, alt text, proper contrast)
+   - Hardcoded values that should be in .env
+   - Any forgotten debug console.log statements
+   - Any unused components or dead code
+   - Incorrect Tailwind CSS classes or conflicts
+
+2. Check all routing in `App.tsx`:
+   - Are all routes working?
+   - Is lazy loading (React.lazy) properly implemented?
+   - Is Suspense used with a fallback?
+   - Are 404 routes handled?
+
+3. Check all hooks (`useTmdb.ts`, `useFavorites.ts`):
+   - Are query keys unique and consistent?
+   - Is error handling proper?
+   - Are stale times and retry values appropriate?
+
+4. Check all contexts (`AuthContext.tsx`, `ToastContext.tsx`):
+   - Is state properly managed?
+   - Are there any potential infinite re-render loops?
+   - Is localStorage accessed safely (with try-catch)?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2: FIX ALL ERRORS FOUND
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For each error or issue found in Phase 1:
+- Fix it immediately
+- Do not break any existing functionality
+- Test that the fix works logically
+- If you're unsure about a fix, leave a comment in the code starting with `// TODO: `
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3: IMPROVEMENTS YOU DEEM NECESSARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Based on your expert judgment, add improvements that make the app better WITHOUT breaking anything. Consider:
+
+1. Performance:
+   - Add missing `useMemo` or `useCallback` where it would prevent unnecessary re-renders
+   - Optimize image loading
+   - Add proper React Query optimistic updates where useful
+
+2. UX Improvements:
+   - Add smooth transitions where missing
+   - Improve loading states (replace generic spinners with skeletons where appropriate)
+   - Add hover states on clickable elements that lack them
+   - Improve mobile touch targets (minimum 44px where missing)
+
+3. Error Handling:
+   - Add error boundaries where appropriate
+   - Improve error messages for users
+   - Add fallback UI for when TMDB API fails
+
+4. Code Quality:
+   - Split large components into smaller sub-components where it makes sense
+   - Extract repeated logic into custom hooks
+   - Add proper JSDoc comments to complex functions
+   - Ensure consistent naming conventions
+
+5. Accessibility:
+   - Ensure keyboard navigation works throughout
+   - Add focus indicators where missing
+   - Ensure screen reader compatibility
+   - Add proper roles and labels
+
+6. Security:
+   - Ensure no API keys are exposed in client-side code (except .env variables)
+   - Verify localStorage data is safely parsed
+   - Check for any XSS vulnerabilities in user inputs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 4: FINAL VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After all fixes and improvements:
+
+1. Verify the app compiles without TypeScript errors
+2. Verify all routes work (/, /movie/:id, /login, /search, /list, /profile, *)
+3. Verify these features still work:
+   - Movie browsing and search
+   - Video player (iframe with correct URL construction)
+   - Authentication (login, register, logout)
+   - Favorites (add, remove, persist)
+   - Toast notifications
+   - PWA functionality
+   - Bottom navigation
+   - Responsive design
+4. Verify NO hardcoded video URLs exist
+5. Verify NO <video> tags exist (only <iframe>)
+6. Verify NO advertisements exist in code
+7. Verify app name is "AGJ Cinema" throughout
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 5: REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After completing everything, give me a detailed report in ARABIC that includes:
+
+1. List of ALL errors found (organized by file)
+2. List of ALL errors fixed
+3. List of ALL improvements added (organized by type: Performance, UX, Error Handling, Code Quality, Accessibility, Security)
+4. List of any issues you could NOT fix and why
+5. Any warnings or recommendations for future development
+6. Current project health score (out of 100) with explanation
+7. A summary of the current file structure after all changes
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CRITICAL RULES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- DO NOT break any existing functionality
+- DO NOT change the core architecture unless absolutely necessary
+- DO NOT remove any features
+- DO NOT add new third-party dependencies unless critical
+- Preserve the app name "AGJ Cinema" everywhere
+- Keep the dark Netflix-style theme
+- Keep all existing user data structure in localStorage
+
+Start the audit now. Go file by file and be thorough.

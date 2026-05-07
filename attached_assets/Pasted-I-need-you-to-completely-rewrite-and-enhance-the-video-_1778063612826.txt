@@ -1,0 +1,191 @@
+I need you to completely rewrite and enhance the video player component in my "AGJ Cinema" app. The current player has responsiveness issues and sometimes doesn't respond well. I want it to be absolutely professional, smooth, and world-class. Do NOT modify any other files.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TARGET FILE: src/components/MoviePlayer.tsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+COMPLETELY REWRITE THIS FILE FROM SCRATCH with the following specifications:
+
+1. CORE STRUCTURE:
+- Full-screen overlay: fixed inset-0, z-50, bg-black/95
+- Smooth fade-in animation on open (opacity 0→1, duration 300ms)
+- Smooth fade-out on close before unmounting
+- All content centered vertically and horizontally
+- Inner container: w-full h-full, max-w-7xl, max-h-screen, p-2 md:p-4
+
+2. LOADING STATE:
+- Before iframe loads: show a sleek loading animation
+- Centered spinner: cyan ring with transparent center, w-12 h-12
+- Below spinner: "Preparing your movie..." text in white/60, text-sm
+- If loading exceeds 8 seconds: show "Taking longer than usual..." + "Retry" button
+- If loading exceeds 15 seconds: show "Stream unavailable. Please try another movie." + "Go Back" button
+- The iframe has an onLoad handler that hides the loading state
+
+3. THE IFRAME:
+- src: receives the full stream URL
+- className: w-full h-full rounded-xl border-0 shadow-2xl
+- allowFullScreen: true
+- allow: "autoplay; encrypted-media; fullscreen; picture-in-picture"
+- sandbox: "allow-scripts allow-same-origin allow-presentation allow-popups allow-forms"
+- loading: "eager" (load immediately)
+- onError: if iframe fails, show error state with retry button
+- The iframe should take the FULL available space in the container
+- Add a subtle inset shadow around the iframe for depth
+
+4. CONTROL OVERLAY (appears on top of iframe):
+- A semi-transparent gradient bar at the bottom: height 80px, gradient from transparent to black/80
+- Shows when user moves mouse or touches the screen
+- Auto-hides after 3 seconds of inactivity
+- Reappears on any mouse movement or touch
+
+The control bar contains (from left to right):
+   a) Play/Pause button: w-10 h-10, white icon, hover:scale-110 transition
+   b) Skip Back 10s button: w-8 h-8, white/80 icon
+   c) Skip Forward 10s button: w-8 h-8, white/80 icon
+   d) Volume button: w-8 h-8, white/80 icon, with a small horizontal slider next to it (w-20)
+   e) Spacer (flex-grow)
+   f) Current time / Total time: text-white/90, text-sm, font-mono
+   g) Spacer (flex-grow)
+   h) Subtitles toggle: w-8 h-8, white/80 icon (glows cyan when subtitles are on)
+   i) Settings gear: w-8 h-8, white/80 icon
+   j) Fullscreen button: w-8 h-8, white/80 icon
+
+5. CENTER PLAY BUTTON:
+- Large Play/Pause icon (w-16 h-16) appears in center of screen
+- Shows when video is paused
+- Fades out 2 seconds after playing starts
+- Background: rounded-full bg-white/10 backdrop-blur-sm
+- Icon: white, w-8 h-8
+- Hover: scale-110, bg-white/20 transition
+- Click toggles play/pause
+
+6. PROGRESS BAR:
+- Positioned just above the control bar
+- Height: 3px normally, 6px on hover
+- Background: rgba(255,255,255,0.2) for the track
+- Filled portion: cyan (#00e5ff) for watched
+- Buffered portion: rgba(255,255,255,0.4)
+- A small white circle thumb appears on hover (w-3 h-3)
+- Click anywhere on the bar to seek
+- While dragging: show a tooltip above the thumb with the target time
+
+7. SETTINGS POPUP:
+- Appears above the settings gear when clicked
+- bg-[#181818]/95 backdrop-blur-md, rounded-xl, border border-white/10
+- Shadow-2xl
+- Width: 220px
+- Sections with dividers:
+   a) Playback Speed: 0.5x, 0.75x, 1x (default), 1.25x, 1.5x, 2x
+      - Current speed highlighted in cyan
+   b) Quality: Auto, 1080p, 720p, 480p, 360p
+      - Current quality highlighted in cyan
+      - Note: these are UI only, don't change actual stream
+   c) Subtitles: Arabic (default), English, Off
+      - Current selection highlighted in cyan
+- Clicking an option closes the popup
+- Clicking outside the popup closes it
+
+8. TOP BAR:
+- Positioned absolute, top-0 left-0 right-0
+- Height: 50px
+- Gradient from black/80 to transparent
+- Left side: Movie title in white/90, font-semibold, text-sm md:text-base, truncate
+- Left side below title: "AGJ Cinema" badge in cyan/80, text-xs
+- Right side: Close button (X icon)
+   - bg-red-600 hover:bg-red-700 text-white
+   - rounded-full, w-10 h-10
+   - shadow-lg
+   - transition-colors
+- Also auto-hides with the control bar
+
+9. "PRESS ESC TO CLOSE" HINT:
+- Positioned: absolute, top-20, left-1/2, -translate-x-1/2
+- Text: "اضغط ESC للإغلاق" in white/40, text-xs
+- Appears on mount
+- Fades out after 3 seconds
+- Never reappears
+
+10. RESUME MODAL:
+- Before playing, check localStorage for saved progress
+- If progress exists and > 60 seconds: show a modal
+- Modal centered on screen
+- bg-[#181818] rounded-2xl p-6 border border-white/10 shadow-2xl
+- Title: "Continue Watching?"
+- Body: "You were at XX:XX. Would you like to resume or start over?"
+- Two buttons side by side:
+   - "Start Over" (glass button: bg-white/10, white text)
+   - "Resume" (cyan button: bg-cyan-500, black text, bold)
+- If user chooses Resume: append `&resumeAt={seconds}` to iframe URL
+- If user chooses Start Over: play from beginning
+
+11. REPORT ISSUE LINK:
+- Positioned: absolute, bottom-4, right-4
+- Text: "Report broken stream?" in white/30, text-xs
+- Hover: text-white/60, underline
+- Click: opens mailto link with subject and body containing movie info
+
+12. KEYBOARD SHORTCUTS (global, when player is open):
+- Space or K: Toggle Play/Pause
+- ArrowLeft or J: Rewind 10 seconds
+- ArrowRight or L: Forward 10 seconds
+- ArrowUp: Volume up 10%
+- ArrowDown: Volume down 10%
+- F: Toggle fullscreen
+- M: Toggle mute
+- Escape: Close player
+- All shortcuts should show a subtle visual feedback (a brief flash on the relevant button)
+
+13. TOUCH GESTURES (mobile):
+- Double tap on left half of screen: Rewind 10 seconds
+- Double tap on right half of screen: Forward 10 seconds
+- Swipe up on left side: Volume up
+- Swipe down on left side: Volume down
+- Swipe up on right side: Brightness up (simulated by adjusting overlay opacity)
+- Swipe down on right side: Brightness down
+- Single tap: Toggle control bar visibility
+
+14. AMBIENT LIGHT EFFECT:
+- A subtle gradient animation on the overlay background
+- Every 15 seconds, smoothly transition between two random dark colors
+- This creates a "cinema screen glow" feeling
+- Very subtle, opacity 0.1-0.2 maximum
+
+15. RESPONSIVE BEHAVIOR:
+- Mobile (<640px):
+   - Control buttons larger (min 44px touch targets)
+   - Volume slider hidden on very small screens
+   - Progress bar thicker (6px default, 8px on hover)
+   - Settings popup takes full width
+   - Time display smaller (text-xs)
+- Tablet (640px-1024px):
+   - All controls visible
+   - Standard sizing
+- Desktop (>1024px):
+   - Maximum iframe width: 80% of screen
+   - Controls more spread out
+   - Precise mouse interactions
+
+16. PERFORMANCE:
+- Use requestAnimationFrame for progress updates (simulated every 1 second)
+- Debounce resize handler (200ms)
+- Memoize callbacks with useCallback
+- Use refs instead of state for values that don't need re-render
+- Clean up ALL event listeners on unmount
+- Clean up ALL timeouts on unmount
+
+17. EDGE CASES TO HANDLE:
+- If URL prop is empty/null: show "No stream URL provided" message
+- If iframe fails to load: show error state with retry
+- If user rapidly opens/closes player: debounce the open animation
+- If localStorage is full: catch the error and continue without saving
+- If on mobile and user rotates device: adjust layout smoothly
+
+18. PROPS INTERFACE:
+```typescript
+interface MoviePlayerProps {
+  url: string;
+  title: string;
+  onClose: () => void;
+  movieId: number;
+  resumeProgress?: number;
+}
