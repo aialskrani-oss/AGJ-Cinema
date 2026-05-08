@@ -14,7 +14,7 @@ export default function Home() {
   const [, navigate] = useLocation();
   const { isLoggedIn } = useAuth();
 
-  const { data: trending }   = useTrending();
+  const { data: trending,   isLoading: trendingLoading } = useTrending();
   const { data: topRated }   = useTopRated();
   const { data: popular }    = usePopular();
   const { data: nowPlaying } = useNowPlaying();
@@ -28,21 +28,29 @@ export default function Home() {
   }, []);
 
   function handlePlay(movie: Movie) {
-    if (movie.media_type === "tv") { navigate(`/tv/${movie.id}`); return; }
+    // TV shows go to their detail page first to pick episode
+    if (movie.media_type === "tv") {
+      navigate(`/tv/${movie.id}`);
+      return;
+    }
     navigate(`/watch/movie/${movie.id}`);
   }
 
   function handleSelect(movie: Movie)   { navigate(`/movie/${movie.id}`); }
   function handleSelectTV(movie: Movie) { navigate(`/tv/${movie.id}`); }
+  function handlePlayTV(movie: Movie)   { navigate(`/tv/${movie.id}`); }
 
   const popularTVMovies  = popularTV?.map(tvToMovie)  ?? [];
   const topRatedTVMovies = topRatedTV?.map(tvToMovie) ?? [];
 
   return (
     <div className="min-h-screen bg-[#141414] animate-fadeIn pb-20 md:pb-0">
-      {trending && trending.length > 0 && (
-        <HeroBanner movies={trending.slice(0, 5)} onPlay={handlePlay} />
-      )}
+      {/* ✅ Pass isLoading so HeroBanner shows skeleton while trending loads */}
+      <HeroBanner
+        movies={trending?.slice(0, 5) ?? []}
+        onPlay={handlePlay}
+        isLoading={trendingLoading}
+      />
 
       <div className="-mt-16 relative z-10">
         {trending   && <MovieRow title="Trending Now"              movies={trending}         onSelect={handleSelect}   onPlay={handlePlay} />}
@@ -52,10 +60,10 @@ export default function Home() {
         {upcoming   && <MovieRow title="Coming Soon"               movies={upcoming}          onSelect={handleSelect}   onPlay={handlePlay} />}
 
         {popularTVMovies.length > 0 && (
-          <MovieRow title="📺 Popular TV Shows" movies={popularTVMovies}  onSelect={handleSelectTV} onPlay={handlePlay} mediaType="tv" />
+          <MovieRow title="📺 Popular TV Shows"    movies={popularTVMovies}  onSelect={handleSelectTV} onPlay={handlePlayTV} mediaType="tv" />
         )}
         {topRatedTVMovies.length > 0 && (
-          <MovieRow title="⭐ Top Rated TV Shows" movies={topRatedTVMovies} onSelect={handleSelectTV} onPlay={handlePlay} mediaType="tv" />
+          <MovieRow title="⭐ Top Rated TV Shows"  movies={topRatedTVMovies} onSelect={handleSelectTV} onPlay={handlePlayTV} mediaType="tv" />
         )}
       </div>
 

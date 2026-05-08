@@ -1,18 +1,25 @@
 import { useEffect, useState, useRef } from "react";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, Subtitles } from "lucide-react";
+import { ArrowLeft, Subtitles, WifiOff } from "lucide-react";
 import { useFavorites } from "../hooks/useFavorites";
 import { useMovieDetails } from "../hooks/useTmdb";
 
 type SubLang = "ar" | "en" | "off";
 
-const BASE  = import.meta.env.VITE_STREAM_BASE_URL as string;
-const COLOR = import.meta.env.VITE_STREAM_PRIMARY_COLOR as string;
-const LANG  = import.meta.env.VITE_STREAM_DEFAULT_LANG as string;
+const BASE  = (import.meta.env.VITE_STREAM_BASE_URL  as string | undefined) ?? "https://vidsrc.xyz/embed/movie/";
+const COLOR = (import.meta.env.VITE_STREAM_PRIMARY_COLOR as string | undefined) ?? "06b6d4";
+const LANG  = (import.meta.env.VITE_STREAM_DEFAULT_LANG  as string | undefined) ?? "en";
 
 function buildSrc(isTV: boolean, id: string, season: string, episode: string, sub: SubLang) {
-  const base = isTV ? BASE.replace("/movie/", "/tv/") : BASE;
-  let url    = isTV ? `${base}${id}/${season}/${episode}` : `${base}${id}`;
+  // Derive TV base by replacing "/movie/" with "/tv/" in the movie base URL
+  const movieBase = BASE.endsWith("/") ? BASE : BASE + "/";
+  const tvBase    = movieBase.replace(/\/movie\//i, "/tv/");
+  const base      = isTV ? tvBase : movieBase;
+
+  let url = isTV
+    ? `${base}${id}/${season}/${episode}`
+    : `${base}${id}`;
+
   url += `?primaryColor=${COLOR}&lang=${LANG}`;
   if (sub === "ar") url += "&ds_lang=ar&sub_lang=ar";
   if (sub === "en") url += "&ds_lang=en&sub_lang=en";
@@ -20,11 +27,8 @@ function buildSrc(isTV: boolean, id: string, season: string, episode: string, su
 }
 
 function goBack(navigate: (to: string) => void) {
-  if (window.history.length > 1) {
-    window.history.back();
-  } else {
-    navigate("/");
-  }
+  if (window.history.length > 1) window.history.back();
+  else navigate("/");
 }
 
 export default function Watch() {
@@ -42,24 +46,22 @@ export default function Watch() {
   const [showBar,   setShowBar]   = useState(true);
   const [showMenu,  setShowMenu]  = useState(false);
   const hideTimer                 = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const origOpen                  = useRef<typeof window.open>(window.open);
   const startTime                 = useRef<number>(Date.now());
 
   const { addToWatchlist } = useFavorites();
   const { data: movieData } = useMovieDetails(!isTV ? Number(id) : 0);
 
   useEffect(() => {
-    const title = isTV ? "Watch TV Show — AGJ Cinema" : "Watch Movie — AGJ Cinema";
-    document.title = title;
+    document.title = isTV ? "Watch TV Show — AGJ Cinema" : "Watch Movie — AGJ Cinema";
     return () => { document.title = "AGJ Cinema"; };
   }, [isTV]);
 
+  // Track watch progress for movies
   useEffect(() => {
     if (isTV || !id) return;
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime.current) / 1000);
-      if (elapsed < 30) return;
-      if (movieData) addToWatchlist(movieData, elapsed);
+      if (elapsed >= 30 && movieData) addToWatchlist(movieData, elapsed);
     }, 30000);
     return () => {
       clearInterval(interval);
@@ -67,12 +69,6 @@ export default function Watch() {
       if (elapsed > 30 && movieData) addToWatchlist(movieData, elapsed);
     };
   }, [isTV, id, movieData, addToWatchlist]);
-
-  useEffect(() => {
-    origOpen.current = window.open;
-    window.open = () => { console.log("[AGJ] popup blocked"); return null; };
-    return () => { window.open = origOpen.current; };
-  }, []);
 
   function resetHide() {
     setShowBar(true);
@@ -83,7 +79,7 @@ export default function Watch() {
   useEffect(() => {
     resetHide();
     return () => { if (hideTimer.current) clearTimeout(hideTimer.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function changeSub(lang: SubLang) {
@@ -97,6 +93,9 @@ export default function Watch() {
   const src      = buildSrc(isTV, id, season, episode, sub);
   const subLabel = sub === "ar" ? "🇸🇦 عربي" : sub === "en" ? "🇬🇧 English" : "⊘ Off";
 
+  // Guard against missing env vars
+  const isMissingConfig = !import.meta.env.VITE_STREAM_BASE_URL;
+
   return (
     <div
       className="fixed inset-0 bg-black"
@@ -104,7 +103,7 @@ export default function Watch() {
       onTouchStart={resetHide}
       onClick={() => { if (showMenu) setShowMenu(false); }}
     >
-      {/* Top bar */}
+      {/* Top control bar */}
       <div
         className={`absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3
           bg-gradient-to-b from-black/80 to-transparent
@@ -118,6 +117,7 @@ export default function Watch() {
           رجوع
         </button>
 
+        {/* Subtitle selector */}
         <div className="relative" onClick={e => e.stopPropagation()}>
           <button
             onClick={() => setShowMenu(s => !s)}
@@ -132,7 +132,7 @@ export default function Watch() {
           </button>
 
           {showMenu && (
-            <div className="absolute top-10 right-0 z-60 bg-[#1a1a1a] border border-white/15 rounded-xl shadow-2xl overflow-hidden w-40 animate-fadeIn">
+            <div className="absolute top-10 right-0 z-[60] bg-[#1a1a1a] border border-white/15 rounded-xl shadow-2xl overflow-hidden w-40 animate-fadeIn">
               {(["ar", "en", "off"] as SubLang[]).map(lang => (
                 <button
                   key={lang}
@@ -140,7 +140,7 @@ export default function Watch() {
                   className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
                     sub === lang
                       ? "text-cyan-400 bg-cyan-400/10 font-semibold"
-                      : "text-white/80 hover:bg-white/8"
+                      : "text-white/80 hover:bg-white/[0.08]"
                   }`}
                 >
                   {lang === "ar" ? "🇸🇦 عربي" : lang === "en" ? "🇬🇧 English" : "⊘ إيقاف"}
@@ -151,20 +151,36 @@ export default function Watch() {
         </div>
       </div>
 
-      {loading && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black gap-3">
+      {/* Loading spinner */}
+      {loading && !isMissingConfig && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black gap-3 pointer-events-none">
           <div className="w-12 h-12 border-4 border-white/10 border-t-cyan-400 rounded-full animate-spin" />
           <p className="text-white/40 text-sm">جاري التحميل…</p>
         </div>
       )}
 
+      {/* Missing config warning — only in dev */}
+      {isMissingConfig && import.meta.env.DEV && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black gap-4 p-6 text-center">
+          <WifiOff className="w-14 h-14 text-white/20" />
+          <p className="text-white font-bold text-lg">Streaming not configured</p>
+          <p className="text-white/40 text-sm max-w-sm">
+            Set <code className="text-cyan-400">VITE_STREAM_BASE_URL</code> in your <code>.env</code> file.
+          </p>
+          <button onClick={() => goBack(navigate)} className="bg-cyan-400 text-black font-bold px-6 py-2.5 rounded-full">
+            Go Back
+          </button>
+        </div>
+      )}
+
+      {/* ✅ KEY FIX: No sandbox attribute — streaming embeds require unrestricted iframe */}
       <iframe
         key={iframeKey}
         src={src}
         className="w-full h-full border-0"
         allowFullScreen
-        allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-        sandbox="allow-scripts allow-same-origin allow-presentation"
+        allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write"
+        referrerPolicy="no-referrer-when-downgrade"
         onLoad={() => setLoading(false)}
         title="Video Player"
       />
