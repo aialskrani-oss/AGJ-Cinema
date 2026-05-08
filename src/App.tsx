@@ -1,19 +1,20 @@
 import { lazy, Suspense } from "react";
-import { Switch, Route, Redirect } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import Navbar from "./components/Navbar";
 import BottomNav from "./components/BottomNav";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
 
-const Home = lazy(() => import("./pages/Home"));
+const Home        = lazy(() => import("./pages/Home"));
 const MovieDetails = lazy(() => import("./pages/MovieDetails"));
-const TVDetails = lazy(() => import("./pages/TVDetails"));
-const TVShows = lazy(() => import("./pages/TVShows"));
-const Search = lazy(() => import("./pages/Search"));
-const MyList = lazy(() => import("./pages/MyList"));
-const Profile = lazy(() => import("./pages/Profile"));
-const Login = lazy(() => import("./pages/Login"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+const TVDetails   = lazy(() => import("./pages/TVDetails"));
+const TVShows     = lazy(() => import("./pages/TVShows"));
+const Search      = lazy(() => import("./pages/Search"));
+const MyList      = lazy(() => import("./pages/MyList"));
+const Profile     = lazy(() => import("./pages/Profile"));
+const Login       = lazy(() => import("./pages/Login"));
+const NotFound    = lazy(() => import("./pages/NotFound"));
+const Watch       = lazy(() => import("./pages/Watch"));
 
 function LoadingSpinner() {
   return (
@@ -33,12 +34,14 @@ function Router() {
   return (
     <Suspense fallback={<LoadingSpinner />}>
       <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/movie/:id" component={MovieDetails} />
-        <Route path="/tv/:id" component={TVDetails} />
-        <Route path="/tv-shows" component={TVShows} />
-        <Route path="/search" component={Search} />
-        <Route path="/login" component={Login} />
+        <Route path="/"                               component={Home} />
+        <Route path="/movie/:id"                      component={MovieDetails} />
+        <Route path="/tv/:id"                         component={TVDetails} />
+        <Route path="/tv-shows"                       component={TVShows} />
+        <Route path="/search"                         component={Search} />
+        <Route path="/login"                          component={Login} />
+        <Route path="/watch/movie/:id"                component={Watch} />
+        <Route path="/watch/tv/:id/:season/:episode"  component={Watch} />
         <Route path="/list">
           <ProtectedRoute><MyList /></ProtectedRoute>
         </Route>
@@ -52,11 +55,13 @@ function Router() {
 }
 
 function AppShell() {
+  const [location] = useLocation();
+  const isWatch = location.startsWith("/watch/");
   return (
     <div className="min-h-screen bg-[#141414]">
-      <Navbar />
+      {!isWatch && <Navbar />}
       <Router />
-      <BottomNav />
+      {!isWatch && <BottomNav />}
     </div>
   );
 }
