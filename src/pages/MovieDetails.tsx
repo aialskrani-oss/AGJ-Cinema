@@ -48,7 +48,7 @@ export default function MovieDetails() {
   const matchPercent  = Math.round(movie.vote_average * 10);
   const cast          = movie.credits?.cast?.slice(0, 8) ?? [];
   const savedProgress = getWatchProgress(movie.id);
-  const runtimeSec    = movie.runtime ? movie.runtime * 60 : 7200;
+  const runtimeSec    = (movie.runtime ?? 120) * 60;
 
   return (
     <div className="min-h-screen bg-[#141414] animate-fadeIn pb-24 md:pb-0">
