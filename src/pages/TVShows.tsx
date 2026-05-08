@@ -2,24 +2,17 @@ import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Play, Info } from "lucide-react";
 import MovieRow from "../components/MovieRow";
-import MoviePlayer from "../components/MoviePlayer";
 import { usePopularTV, useTopRatedTV, useAiringTodayTV, useOnTheAirTV } from "../hooks/useTmdb";
 import type { Movie } from "../api/tmdb";
 import { tmdb, tvToMovie } from "../api/tmdb";
 
-const STREAM_BASE_URL = import.meta.env.VITE_STREAM_BASE_URL as string;
-const STREAM_PRIMARY_COLOR = import.meta.env.VITE_STREAM_PRIMARY_COLOR as string;
-const STREAM_DEFAULT_LANG = import.meta.env.VITE_STREAM_DEFAULT_LANG as string;
-
 export default function TVShows() {
   const [, navigate] = useLocation();
-  const [playingId, setPlayingId] = useState<number | null>(null);
-  const [playingTitle, setPlayingTitle] = useState("");
 
-  const { data: popular } = usePopularTV();
-  const { data: topRated } = useTopRatedTV();
-  const { data: airingToday } = useAiringTodayTV();
-  const { data: onTheAir } = useOnTheAirTV();
+  const { data: popular }    = usePopularTV();
+  const { data: topRated }   = useTopRatedTV();
+  const { data: airingToday} = useAiringTodayTV();
+  const { data: onTheAir }   = useOnTheAirTV();
 
   const featured = useMemo(() => {
     if (!popular || popular.length === 0) return undefined;
@@ -28,21 +21,13 @@ export default function TVShows() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [popular !== undefined]);
 
-  const popularMovies = popular?.map(tvToMovie) ?? [];
-  const topRatedMovies = topRated?.map(tvToMovie) ?? [];
+  const popularMovies    = popular?.map(tvToMovie)    ?? [];
+  const topRatedMovies   = topRated?.map(tvToMovie)   ?? [];
   const airingTodayMovies = airingToday?.map(tvToMovie) ?? [];
-  const onTheAirMovies = onTheAir?.map(tvToMovie) ?? [];
-
-  function buildUrl(tvId: number) {
-    const tvBase = STREAM_BASE_URL.replace("/movie/", "/tv/");
-    return `${tvBase}${tvId}/1/1?primaryColor=${STREAM_PRIMARY_COLOR}&lang=${STREAM_DEFAULT_LANG}&ds_lang=ar&sub_lang=ar`;
-  }
+  const onTheAirMovies   = onTheAir?.map(tvToMovie)   ?? [];
 
   function handleSelect(m: Movie) { navigate(`/tv/${m.id}`); }
-  function handlePlay(m: Movie) {
-    setPlayingId(m.id);
-    setPlayingTitle(m.title || m.name || "");
-  }
+  function handlePlay(m: Movie)   { navigate(`/watch/tv/${m.id}/1/1`); }
 
   return (
     <div className="min-h-screen bg-[#141414] animate-fadeIn pb-20 md:pb-0">
@@ -67,7 +52,7 @@ export default function TVShows() {
             <p className="text-white/80 text-sm md:text-base line-clamp-3 mb-5 leading-relaxed">{featured.overview}</p>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => handlePlay(tvToMovie(featured))}
+                onClick={() => navigate(`/watch/tv/${featured.id}/1/1`)}
                 className="flex items-center gap-2 bg-white text-black font-bold px-6 py-2.5 rounded-full hover:bg-white/90 transition-all duration-200"
               >
                 <Play className="w-5 h-5 fill-black" /> Watch Now
@@ -84,28 +69,11 @@ export default function TVShows() {
       )}
 
       <div className={featured ? "-mt-16 relative z-10" : "pt-24"}>
-        {popularMovies.length > 0 && (
-          <MovieRow title="📺 Popular" movies={popularMovies} onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />
-        )}
-        {topRatedMovies.length > 0 && (
-          <MovieRow title="⭐ Top Rated" movies={topRatedMovies} onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />
-        )}
-        {airingTodayMovies.length > 0 && (
-          <MovieRow title="🔴 Airing Today" movies={airingTodayMovies} onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />
-        )}
-        {onTheAirMovies.length > 0 && (
-          <MovieRow title="📡 On The Air" movies={onTheAirMovies} onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />
-        )}
+        {popularMovies.length > 0     && <MovieRow title="📺 Popular"      movies={popularMovies}     onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />}
+        {topRatedMovies.length > 0    && <MovieRow title="⭐ Top Rated"    movies={topRatedMovies}    onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />}
+        {airingTodayMovies.length > 0 && <MovieRow title="🔴 Airing Today" movies={airingTodayMovies} onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />}
+        {onTheAirMovies.length > 0    && <MovieRow title="📡 On The Air"   movies={onTheAirMovies}    onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />}
       </div>
-
-      {playingId !== null && (
-        <MoviePlayer
-          url={buildUrl(playingId)}
-          title={playingTitle}
-          movieId={playingId}
-          onClose={() => setPlayingId(null)}
-        />
-      )}
     </div>
   );
 }
