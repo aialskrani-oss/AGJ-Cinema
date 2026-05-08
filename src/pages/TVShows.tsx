@@ -1,27 +1,27 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Play, Info } from "lucide-react";
 import MovieRow from "../components/MovieRow";
+import MoviePlayer from "../components/MoviePlayer";
 import { usePopularTV, useTopRatedTV, useAiringTodayTV, useOnTheAirTV } from "../hooks/useTmdb";
 import type { Movie } from "../api/tmdb";
 import { tmdb, tvToMovie } from "../api/tmdb";
 
-// ── Skeleton for hero banner ────────────────────────────────────────────────
+// ── Skeleton: Hero Banner ────────────────────────────────────────────────────
 function HeroSkeleton() {
   return (
     <div className="relative h-[80vh] overflow-hidden bg-[#1a1a1a]">
-      <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-[#1f1f1f] to-[#141414] animate-shimmer bg-[length:200%_100%]" />
+      <div className="absolute inset-0 animate-shimmer bg-[length:200%_100%]" />
       <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/20 to-transparent" />
-      <div className="absolute bottom-24 md:bottom-32 left-4 md:left-12 space-y-4">
+      <div className="absolute bottom-24 md:bottom-32 left-4 md:left-12 space-y-4 max-w-xl">
         <div className="h-3 w-24 bg-white/10 rounded-full animate-pulse" />
         <div className="h-12 md:h-16 w-80 md:w-[28rem] bg-white/8 rounded-xl animate-pulse" />
-        <div className="h-12 w-60 bg-white/5 rounded-xl animate-pulse" />
+        <div className="h-10 w-60 bg-white/5 rounded-xl animate-pulse" />
         <div className="space-y-2">
           <div className="h-3 w-full max-w-md bg-white/5 rounded animate-pulse" />
           <div className="h-3 w-5/6 bg-white/5 rounded animate-pulse" />
-          <div className="h-3 w-4/6 bg-white/5 rounded animate-pulse" />
         </div>
-        <div className="flex gap-3 mt-4">
+        <div className="flex gap-3 pt-1">
           <div className="h-10 w-32 bg-white/10 rounded-full animate-pulse" />
           <div className="h-10 w-32 bg-white/5 rounded-full animate-pulse" />
         </div>
@@ -30,7 +30,7 @@ function HeroSkeleton() {
   );
 }
 
-// ── Skeleton for a movie row ────────────────────────────────────────────────
+// ── Skeleton: Horizontal row ─────────────────────────────────────────────────
 function RowSkeleton({ title }: { title: string }) {
   return (
     <div className="mb-8">
@@ -50,12 +50,14 @@ function RowSkeleton({ title }: { title: string }) {
 
 export default function TVShows() {
   const [, navigate] = useLocation();
+  const [player, setPlayer] = useState<{ id: number; title: string; season: number; episode: number } | null>(null);
 
   const { data: popular,     isLoading: popularLoading }     = usePopularTV();
   const { data: topRated,    isLoading: topRatedLoading }    = useTopRatedTV();
   const { data: airingToday, isLoading: airingTodayLoading } = useAiringTodayTV();
   const { data: onTheAir,    isLoading: onTheAirLoading }    = useOnTheAirTV();
 
+  // Show skeleton only while ALL four requests are in-flight
   const isLoading = popularLoading && topRatedLoading && airingTodayLoading && onTheAirLoading;
 
   useEffect(() => {
@@ -63,7 +65,7 @@ export default function TVShows() {
     return () => { document.title = "AGJ Cinema"; };
   }, []);
 
-  // Pick a stable random featured show once data loads
+  // Stable random featured show (re-picks only if list size changes)
   const featured = useMemo(() => {
     if (!popular || popular.length === 0) return undefined;
     const idx = Math.floor(Math.random() * Math.min(5, popular.length));
@@ -75,10 +77,14 @@ export default function TVShows() {
   const airingTodayMovies = airingToday?.map(tvToMovie) ?? [];
   const onTheAirMovies    = onTheAir?.map(tvToMovie)    ?? [];
 
+  // Clicking a card navigates to the detail page (pick episode there)
   function handleSelect(m: Movie) { navigate(`/tv/${m.id}`); }
-  function handlePlay(m: Movie)   { navigate(`/tv/${m.id}`); }   // go to detail page to pick episode
+  // Clicking Play opens inline player at S01E01 — user can change episode from detail page
+  function handlePlay(m: Movie) {
+    setPlayer({ id: m.id, title: m.title || m.name || "", season: 1, episode: 1 });
+  }
 
-  // ── Loading state ──────────────────────────────────────────────────────────
+  // ── Loading skeleton ────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#141414] animate-fadeIn pb-20 md:pb-0">
@@ -95,7 +101,20 @@ export default function TVShows() {
 
   return (
     <div className="min-h-screen bg-[#141414] animate-fadeIn pb-20 md:pb-0">
-      {/* Hero Banner */}
+
+      {/* ── Inline TV player overlay ─────────────────────────────────────── */}
+      {player && (
+        <MoviePlayer
+          movieId={player.id}
+          title={player.title}
+          isTV
+          season={player.season}
+          episode={player.episode}
+          onClose={() => setPlayer(null)}
+        />
+      )}
+
+      {/* ── Hero Banner ──────────────────────────────────────────────────── */}
       {featured ? (
         <div className="relative h-[80vh] overflow-hidden">
           {featured.backdrop_path ? (
@@ -125,7 +144,7 @@ export default function TVShows() {
             )}
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate(`/watch/tv/${featured.id}/1/1`)}
+                onClick={() => setPlayer({ id: featured.id, title: featured.name, season: 1, episode: 1 })}
                 className="flex items-center gap-2 bg-white text-black font-bold px-6 py-2.5 rounded-full hover:bg-white/90 transition-all duration-200 active:scale-95"
               >
                 <Play className="w-5 h-5 fill-black" /> Watch Now
@@ -140,16 +159,15 @@ export default function TVShows() {
           </div>
         </div>
       ) : (
-        // No featured data — show a slim top bar
-        <div className="h-20 bg-transparent" />
+        <div className="h-20" />
       )}
 
-      {/* Movie Rows */}
+      {/* ── TV Show rows ─────────────────────────────────────────────────── */}
       <div className={featured ? "-mt-16 relative z-10" : "pt-6"}>
-        {popularMovies.length > 0     && <MovieRow title="📺 Popular"       movies={popularMovies}     onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />}
-        {topRatedMovies.length > 0    && <MovieRow title="⭐ Top Rated"     movies={topRatedMovies}    onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />}
-        {airingTodayMovies.length > 0 && <MovieRow title="🔴 Airing Today"  movies={airingTodayMovies} onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />}
-        {onTheAirMovies.length > 0    && <MovieRow title="📡 On The Air"    movies={onTheAirMovies}    onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />}
+        {popularMovies.length > 0     && <MovieRow title="📺 Popular"      movies={popularMovies}     onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />}
+        {topRatedMovies.length > 0    && <MovieRow title="⭐ Top Rated"    movies={topRatedMovies}    onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />}
+        {airingTodayMovies.length > 0 && <MovieRow title="🔴 Airing Today" movies={airingTodayMovies} onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />}
+        {onTheAirMovies.length > 0    && <MovieRow title="📡 On The Air"   movies={onTheAirMovies}    onSelect={handleSelect} onPlay={handlePlay} mediaType="tv" />}
       </div>
     </div>
   );
