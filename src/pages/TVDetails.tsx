@@ -115,8 +115,8 @@ export default function TVDetails() {
             {show.created_by?.length && <p className="text-white/40 text-xs mb-5">Created by: <span className="text-white/70">{show.created_by.map(c => c.name).join(", ")}</span></p>}
 
             <div className="flex items-center gap-3 mb-6 flex-wrap">
-              <button onClick={() => watchEpisode(1, 1)} className="flex items-center gap-2 bg-white text-black font-bold px-6 py-2.5 rounded-full hover:bg-white/90 transition-all duration-200 active:scale-95">
-                <Play className="w-5 h-5 fill-black" /> Watch S1E1
+              <button onClick={() => watchEpisode(mainSeasons[0]?.season_number ?? 1, 1)} className="flex items-center gap-2 bg-white text-black font-bold px-6 py-2.5 rounded-full hover:bg-white/90 transition-all duration-200 active:scale-95">
+                <Play className="w-5 h-5 fill-black" /> Watch Now
               </button>
               <button onClick={handleFavorite} className={`flex items-center gap-2 border font-semibold px-5 py-2.5 rounded-full transition-all duration-200 ${favored ? "bg-red-500/20 border-red-500 text-red-400 hover:bg-red-500/30" : isLoggedIn ? "glass border-white/20 text-white hover:bg-white/20" : "border-white/10 text-white/40"}`}>
                 {favored ? (<><Heart className="w-5 h-5 fill-red-400" /> Remove</>) : isLoggedIn ? (<><Plus className="w-5 h-5" /> My List</>) : (<><LogIn className="w-4 h-4" /> Sign in</>)}
