@@ -84,7 +84,8 @@ export default function MyList() {
           ) : (
             <div className="flex flex-col gap-3">
               {inProgress.map((entry) => {
-                const progressPct = Math.min(100, (entry.progress / 7200) * 100);
+                const runtimeSec = (entry.movie.runtime ?? 120) * 60;
+                const progressPct = Math.min(100, (entry.progress / runtimeSec) * 100);
                 return (
                   <div key={entry.movie.id} className="flex gap-4 bg-[#181818] rounded-2xl p-3 border border-white/5 hover:border-white/10 transition-colors group">
                     <div className="relative w-20 h-28 flex-shrink-0 rounded-xl overflow-hidden bg-gray-800 cursor-pointer" onClick={() => navigate(`/movie/${entry.movie.id}`)}>
