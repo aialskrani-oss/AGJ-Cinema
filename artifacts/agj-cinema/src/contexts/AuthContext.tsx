@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 
 interface User {
@@ -13,12 +13,27 @@ interface StoredUser {
 interface AuthContextValue {
   user: User | null;
   isLoggedIn: boolean;
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  register: (username: string, password: string) => boolean;
+  register: (username: string, password: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+const HASH_MARKER = "$sha256$";
+
+function isHashed(pw: string): boolean {
+  return pw.startsWith(HASH_MARKER);
+}
+
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return HASH_MARKER + hex;
+}
 
 function getStoredUsers(): StoredUser[] {
   try {
@@ -39,23 +54,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   });
 
-  function login(username: string, password: string): boolean {
+  async function login(username: string, password: string): Promise<boolean> {
     const users = getStoredUsers();
     const found = users.find(
-      (u) => u.username.toLowerCase() === username.toLowerCase() && u.password === password
+      (u) => u.username.toLowerCase() === username.toLowerCase()
     );
     if (!found) return false;
+
+    let matches = false;
+    if (isHashed(found.password)) {
+      const hashed = await hashPassword(password);
+      matches = found.password === hashed;
+    } else {
+      matches = found.password === password;
+      if (matches) {
+        const hashed = await hashPassword(password);
+        const updated = users.map((u) =>
+          u.username === found.username ? { ...u, password: hashed } : u
+        );
+        localStorage.setItem("agj_users", JSON.stringify(updated));
+      }
+    }
+
+    if (!matches) return false;
     const sessionUser: User = { username: found.username };
     localStorage.setItem("agj_user", JSON.stringify(sessionUser));
     setUser(sessionUser);
     return true;
   }
 
-  function register(username: string, password: string): boolean {
+  async function register(username: string, password: string): Promise<boolean> {
     const users = getStoredUsers();
-    const exists = users.some((u) => u.username.toLowerCase() === username.toLowerCase());
+    const exists = users.some(
+      (u) => u.username.toLowerCase() === username.toLowerCase()
+    );
     if (exists) return false;
-    const newUser: StoredUser = { username, password };
+    const hashed = await hashPassword(password);
+    const newUser: StoredUser = { username, password: hashed };
     const updated = [...users, newUser];
     localStorage.setItem("agj_users", JSON.stringify(updated));
     const sessionUser: User = { username };
