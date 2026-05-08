@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { Search, X, Star, ArrowRight, LogIn } from "lucide-react";
+import { Search, X, Star, ArrowRight, LogIn, Tv } from "lucide-react";
 import { tmdb } from "../api/tmdb";
-import { useSearch } from "../hooks/useTmdb";
+import { useSearchMulti } from "../hooks/useTmdb";
 import { useAuth } from "../contexts/AuthContext";
 import type { Movie } from "../api/tmdb";
 
@@ -15,7 +15,7 @@ export default function Navbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { isLoggedIn, user } = useAuth();
 
-  const { data: searchResults, isFetching } = useSearch(query);
+  const { data: searchResults, isFetching } = useSearchMulti(query);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -41,7 +41,11 @@ export default function Navbar() {
   function handleSelectMovie(movie: Movie) {
     setSearchOpen(false);
     setQuery("");
-    navigate(`/movie/${movie.id}`);
+    if (movie.media_type === "tv") {
+      navigate(`/tv/${movie.id}`);
+    } else {
+      navigate(`/movie/${movie.id}`);
+    }
   }
 
   function handleNavLink(path: string) { navigate(path); }
@@ -59,6 +63,10 @@ export default function Navbar() {
       ? user.username.slice(0, 10) + "…"
       : user.username
     : "";
+
+  const results = searchResults?.results?.filter(
+    (m) => m.media_type === "movie" || m.media_type === "tv"
+  ) ?? [];
 
   return (
     <nav
@@ -84,10 +92,10 @@ export default function Navbar() {
       {/* Desktop Nav Links */}
       <div className="hidden md:flex items-center gap-6 text-sm font-medium">
         {[
-          { label: "Home", path: "/" },
-          { label: "Movies", path: "/search" },
+          { label: "Home",     path: "/" },
+          { label: "Movies",   path: "/search" },
           { label: "TV Shows", path: "/tv-shows" },
-          { label: "My List", path: "/list" },
+          { label: "My List",  path: "/list" },
         ].map((link) => (
           <button
             key={link.label}
@@ -118,7 +126,7 @@ export default function Navbar() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search movies..."
+                placeholder="Search movies & shows..."
                 className="bg-transparent text-white text-sm outline-none w-36 md:w-52 placeholder-white/30"
               />
               {isFetching ? (
@@ -151,15 +159,15 @@ export default function Navbar() {
           {/* Dropdown */}
           {showDropdown && (
             <div className="absolute top-12 right-0 w-72 md:w-80 bg-[#161616] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 animate-fadeIn">
-              {searchResults && searchResults.results && searchResults.results.length > 0 ? (
+              {results.length > 0 ? (
                 <>
                   <div className="px-3 pt-3 pb-1">
                     <p className="text-white/30 text-[10px] font-semibold uppercase tracking-widest">Results</p>
                   </div>
                   <div className="max-h-[60vh] overflow-y-auto no-scrollbar">
-                    {searchResults.results.slice(0, 7).map((movie) => (
+                    {results.slice(0, 7).map((movie) => (
                       <button
-                        key={movie.id}
+                        key={`${movie.media_type}-${movie.id}`}
                         onClick={() => handleSelectMovie(movie)}
                         className="flex items-center gap-3 px-3 py-2.5 hover:bg-white/8 transition-colors text-left w-full group"
                       >
@@ -169,9 +177,22 @@ export default function Navbar() {
                           ) : <div className="w-full h-full bg-gray-700" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-semibold truncate group-hover:text-cyan-400 transition-colors">{movie.title}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-white text-sm font-semibold truncate group-hover:text-cyan-400 transition-colors">
+                              {movie.title || movie.name}
+                            </p>
+                            {movie.media_type === "tv" && (
+                              <span className="flex-shrink-0 flex items-center gap-0.5 bg-cyan-400/20 text-cyan-400 text-[9px] px-1.5 py-0.5 rounded-md font-bold">
+                                <Tv className="w-2.5 h-2.5" /> TV
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 mt-0.5">
-                            {movie.release_date && <span className="text-white/40 text-[11px]">{movie.release_date.slice(0, 4)}</span>}
+                            {(movie.release_date || movie.first_air_date) && (
+                              <span className="text-white/40 text-[11px]">
+                                {(movie.release_date || movie.first_air_date || "").slice(0, 4)}
+                              </span>
+                            )}
                             {movie.vote_average > 0 && (
                               <div className="flex items-center gap-0.5">
                                 <Star className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
