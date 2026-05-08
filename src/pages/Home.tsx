@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import HeroBanner from "../components/HeroBanner";
 import MovieRow from "../components/MovieRow";
@@ -20,6 +21,11 @@ export default function Home() {
   const { data: upcoming }   = useUpcoming();
   const { data: popularTV }  = usePopularTV();
   const { data: topRatedTV } = useTopRatedTV();
+
+  useEffect(() => {
+    document.title = "AGJ Cinema — Watch Movies & TV Shows";
+    return () => { document.title = "AGJ Cinema"; };
+  }, []);
 
   function handlePlay(movie: Movie) {
     if (movie.media_type === "tv") { navigate(`/tv/${movie.id}`); return; }

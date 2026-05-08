@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { ArrowLeft, Subtitles } from "lucide-react";
 import { useFavorites } from "../hooks/useFavorites";
 import { useMovieDetails } from "../hooks/useTmdb";
@@ -19,14 +19,22 @@ function buildSrc(isTV: boolean, id: string, season: string, episode: string, su
   return url;
 }
 
+function goBack(navigate: (to: string) => void) {
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    navigate("/");
+  }
+}
+
 export default function Watch() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
+  const params = useParams<{ id: string; season?: string; episode?: string }>();
 
   const isTV    = location.startsWith("/watch/tv/");
-  const parts   = location.split("/").filter(Boolean);
-  const id      = parts[2] ?? "";
-  const season  = parts[3] ?? "1";
-  const episode = parts[4] ?? "1";
+  const id      = params.id ?? "";
+  const season  = params.season ?? "1";
+  const episode = params.episode ?? "1";
 
   const [sub,       setSub]       = useState<SubLang>("ar");
   const [iframeKey, setIframeKey] = useState(0);
@@ -37,43 +45,41 @@ export default function Watch() {
   const origOpen                  = useRef<typeof window.open>(window.open);
   const startTime                 = useRef<number>(Date.now());
 
-  // Progress tracking — only for movies
   const { addToWatchlist } = useFavorites();
   const { data: movieData } = useMovieDetails(!isTV ? Number(id) : 0);
 
-  // Save progress every 30 seconds
+  useEffect(() => {
+    const title = isTV ? "Watch TV Show — AGJ Cinema" : "Watch Movie — AGJ Cinema";
+    document.title = title;
+    return () => { document.title = "AGJ Cinema"; };
+  }, [isTV]);
+
   useEffect(() => {
     if (isTV || !id) return;
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime.current) / 1000);
       if (elapsed < 30) return;
-      if (movieData) {
-        addToWatchlist(movieData, elapsed);
-      }
+      if (movieData) addToWatchlist(movieData, elapsed);
     }, 30000);
     return () => {
       clearInterval(interval);
-      // Save on unmount
       const elapsed = Math.floor((Date.now() - startTime.current) / 1000);
-      if (elapsed > 30 && movieData) {
-        addToWatchlist(movieData, elapsed);
-      }
+      if (elapsed > 30 && movieData) addToWatchlist(movieData, elapsed);
     };
   }, [isTV, id, movieData, addToWatchlist]);
 
-  // Block popups
   useEffect(() => {
     origOpen.current = window.open;
     window.open = () => { console.log("[AGJ] popup blocked"); return null; };
     return () => { window.open = origOpen.current; };
   }, []);
 
-  // Auto-hide bar
   function resetHide() {
     setShowBar(true);
     if (hideTimer.current) clearTimeout(hideTimer.current);
     hideTimer.current = setTimeout(() => setShowBar(false), 4000);
   }
+
   useEffect(() => {
     resetHide();
     return () => { if (hideTimer.current) clearTimeout(hideTimer.current); };
@@ -105,14 +111,13 @@ export default function Watch() {
           transition-opacity duration-500 ${showBar ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       >
         <button
-          onClick={() => window.history.back()}
+          onClick={() => goBack(navigate)}
           className="flex items-center gap-2 text-white/80 hover:text-white text-sm font-medium transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
           رجوع
         </button>
 
-        {/* Subtitle picker */}
         <div className="relative" onClick={e => e.stopPropagation()}>
           <button
             onClick={() => setShowMenu(s => !s)}
@@ -146,7 +151,6 @@ export default function Watch() {
         </div>
       </div>
 
-      {/* Loading */}
       {loading && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black gap-3">
           <div className="w-12 h-12 border-4 border-white/10 border-t-cyan-400 rounded-full animate-spin" />
@@ -154,7 +158,6 @@ export default function Watch() {
         </div>
       )}
 
-      {/* Full-screen iframe */}
       <iframe
         key={iframeKey}
         src={src}
@@ -163,6 +166,7 @@ export default function Watch() {
         allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
         sandbox="allow-scripts allow-same-origin allow-presentation"
         onLoad={() => setLoading(false)}
+        title="Video Player"
       />
     </div>
   );

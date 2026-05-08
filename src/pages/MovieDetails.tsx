@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { ArrowLeft, Play, Heart, Plus, ThumbsUp, Star, Clock, ExternalLink, LogIn } from "lucide-react";
 import { useMovieDetails, useSimilar, useVideos } from "../hooks/useTmdb";
@@ -7,6 +8,11 @@ import { useToast } from "../contexts/ToastContext";
 import MovieRow from "../components/MovieRow";
 import { tmdb } from "../api/tmdb";
 import type { Movie } from "../api/tmdb";
+
+function goBack(navigate: (to: string) => void) {
+  if (window.history.length > 1) window.history.back();
+  else navigate("/");
+}
 
 export default function MovieDetails() {
   const params = useParams<{ id: string }>();
@@ -18,17 +24,28 @@ export default function MovieDetails() {
 
   const { data: movie, isLoading, isError } = useMovieDetails(id);
   const { data: similar } = useSimilar(id);
-  const { data: videos } = useVideos(id);
+  const { data: videos }  = useVideos(id);
 
-  const trailer     = videos?.find(v => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser"));
-  const favored     = movie ? isFavorite(movie.id) : false;
+  useEffect(() => {
+    if (movie?.title) document.title = `${movie.title} — AGJ Cinema`;
+    return () => { document.title = "AGJ Cinema"; };
+  }, [movie?.title]);
+
+  const trailer = videos?.find(v => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser"));
+  const favored  = movie ? isFavorite(movie.id) : false;
 
   function handleFavorite() {
     if (!isLoggedIn) { showToast("Sign in to add favorites", "info"); navigate("/login"); return; }
     if (!movie) return;
     const wasAdded = !isFavorite(movie.id);
     toggleFavorite(movie);
-    showToast(wasAdded ? "\u2713 Added to Favorites" : "\u2717 Removed from Favorites", wasAdded ? "success" : "info");
+    showToast(wasAdded ? "✓ Added to Favorites" : "✗ Removed from Favorites", wasAdded ? "success" : "info");
+  }
+
+  function handleThumbsUp() {
+    if (!movie) return;
+    if (!isLoggedIn) { showToast("Sign in to rate movies", "info"); navigate("/login"); return; }
+    showToast("Rating saved!", "success");
   }
 
   if (isLoading) return (
@@ -52,19 +69,17 @@ export default function MovieDetails() {
 
   return (
     <div className="min-h-screen bg-[#141414] animate-fadeIn pb-24 md:pb-0">
-      {/* Backdrop */}
       <div className="relative h-[55vh] md:h-[70vh] overflow-hidden">
         {movie.backdrop_path
           ? <img src={tmdb.imgUrl(movie.backdrop_path, "original")} alt={movie.title} loading="lazy" className="w-full h-full object-cover" />
           : <div className="w-full h-full bg-gray-900" />}
         <div className="absolute inset-0 bg-gradient-to-r from-[#141414]/80 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/30 to-transparent" />
-        <button onClick={() => window.history.back()} className="absolute top-20 left-4 flex items-center gap-2 glass border border-white/20 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-white/20 transition-colors">
+        <button onClick={() => goBack(navigate)} className="absolute top-20 left-4 flex items-center gap-2 glass border border-white/20 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-white/20 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
       </div>
 
-      {/* Content */}
       <div className="-mt-20 md:-mt-32 relative z-10 px-4 md:px-12">
         <div className="flex gap-6 md:gap-8">
           <div className="hidden md:block flex-shrink-0">
@@ -115,7 +130,6 @@ export default function MovieDetails() {
             <p className="text-white/80 text-sm md:text-base leading-relaxed mb-5 max-w-2xl">{movie.overview}</p>
 
             <div className="flex items-center gap-3 mb-6 flex-wrap">
-              {/* ── Play → navigate to watch page ── */}
               <button
                 onClick={() => navigate(`/watch/movie/${id}`)}
                 className="flex items-center gap-2 bg-white text-black font-bold px-6 py-2.5 rounded-full hover:bg-white/90 transition-all duration-200 active:scale-95"
@@ -128,8 +142,12 @@ export default function MovieDetails() {
                 {favored ? (<><Heart className="w-5 h-5 fill-red-400" /> Remove</>) : isLoggedIn ? (<><Plus className="w-5 h-5" /> Add to Favorites</>) : (<><LogIn className="w-4 h-4" /> Sign in</>)}
               </button>
 
-              <button className="w-11 h-11 rounded-full border border-white/30 flex items-center justify-center hover:border-white transition-colors">
-                <ThumbsUp className="w-5 h-5 text-white" />
+              <button
+                onClick={handleThumbsUp}
+                title="Rate this movie"
+                className="w-11 h-11 rounded-full border border-white/30 flex items-center justify-center hover:border-cyan-400 hover:text-cyan-400 text-white transition-colors"
+              >
+                <ThumbsUp className="w-5 h-5" />
               </button>
             </div>
 

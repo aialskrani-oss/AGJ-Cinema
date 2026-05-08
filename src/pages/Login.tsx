@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, Eye, EyeOff, User, Lock } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
@@ -6,19 +6,29 @@ import { useAuth } from "../contexts/AuthContext";
 type Mode = "signin" | "register";
 
 export default function Login() {
-  const [mode, setMode] = useState<Mode>("signin");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [mode, setMode]                     = useState<Mode>("signin");
+  const [username, setUsername]             = useState("");
+  const [password, setPassword]             = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [, navigate] = useLocation();
-  const { login, register } = useAuth();
+  const [showPassword, setShowPassword]     = useState(false);
+  const [error, setError]                   = useState("");
+  const [success, setSuccess]               = useState("");
+  const [loading, setLoading]               = useState(false);
+  const [, navigate]                        = useLocation();
+  const { login, register }                 = useAuth();
+
+  useEffect(() => {
+    document.title = "Sign In — AGJ Cinema";
+    return () => { document.title = "AGJ Cinema"; };
+  }, []);
 
   function clearFields() { setUsername(""); setPassword(""); setConfirmPassword(""); setError(""); setSuccess(""); }
   function switchMode(m: Mode) { setMode(m); clearFields(); }
+
+  function handleBack() {
+    if (window.history.length > 1) window.history.back();
+    else navigate("/");
+  }
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
@@ -35,7 +45,7 @@ export default function Login() {
     e.preventDefault();
     setError("");
     if (username.trim().length < 3) { setError("Username must be at least 3 characters."); return; }
-    if (password.length < 4) { setError("Password must be at least 4 characters."); return; }
+    if (password.length < 4)        { setError("Password must be at least 4 characters."); return; }
     if (password !== confirmPassword) { setError("Passwords do not match."); return; }
     setLoading(true);
     const ok = await register(username.trim(), password);
@@ -47,7 +57,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-[#141414] flex flex-col items-center justify-center px-4 animate-fadeIn">
-      <button onClick={() => navigate("/")} className="absolute top-6 left-4 md:left-8 flex items-center gap-2 text-white/50 hover:text-white text-sm transition-colors">
+      <button onClick={handleBack} className="absolute top-6 left-4 md:left-8 flex items-center gap-2 text-white/50 hover:text-white text-sm transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
       <div className="w-full max-w-sm">

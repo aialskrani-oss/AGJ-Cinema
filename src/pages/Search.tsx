@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
-import { Search as SearchIcon, X, Star, Zap, Laugh, Ghost, Rocket, Heart, TrendingUp, Film, FileText } from "lucide-react";
-import { useSearchInfinite, useDiscoverByGenre } from "../hooks/useTmdb";
+import { Search as SearchIcon, X, Star, Zap, Laugh, Ghost, Rocket, Heart, TrendingUp, Film, FileText, Tv } from "lucide-react";
+import { useSearchInfinite, useDiscoverByGenre, useSearchMulti } from "../hooks/useTmdb";
 import { tmdb } from "../api/tmdb";
 import type { Movie } from "../api/tmdb";
 
@@ -27,12 +27,17 @@ function SkeletonCard() {
 }
 
 export default function Search() {
-  const [rawQuery, setRawQuery] = useState("");
+  const [rawQuery, setRawQuery]           = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
-  const [, navigate] = useLocation();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [selectedGenre, setSelectedGenre]   = useState<number | null>(null);
+  const [, navigate]                        = useLocation();
+  const inputRef                            = useRef<HTMLInputElement>(null);
+  const bottomRef                           = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    document.title = "Search — AGJ Cinema";
+    return () => { document.title = "AGJ Cinema"; };
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(rawQuery), 400);
@@ -41,6 +46,12 @@ export default function Search() {
 
   const hasQuery = debouncedQuery.length > 2;
   const hasGenre = selectedGenre !== null;
+
+  // ✅ Use searchMulti for text search (returns movies + TV shows)
+  const {
+    data: multiResults,
+    isFetching: multiFetching,
+  } = useSearchMulti(debouncedQuery);
 
   const {
     data: searchPages,
@@ -56,10 +67,11 @@ export default function Search() {
     hasNextPage: discoverHasNext,
   } = useDiscoverByGenre(hasQuery ? null : selectedGenre);
 
-  const isFetching = searchFetching || discoverFetching;
+  const isFetching = searchFetching || discoverFetching || multiFetching;
 
+  // Use multiResults for quick display + searchPages for infinite scroll
   const allResults: Movie[] = hasQuery
-    ? (searchPages?.pages.flatMap((p) => p.results) ?? [])
+    ? (searchPages?.pages.flatMap((p) => p.results) ?? (multiResults?.results?.filter(m => m.media_type === "movie" || m.media_type === "tv") ?? []))
     : hasGenre
     ? (discoverPages?.pages.flatMap((p) => p.results) ?? [])
     : [];
@@ -69,7 +81,6 @@ export default function Search() {
     else if (!hasQuery && hasGenre && discoverHasNext && !discoverFetching) fetchNextDiscover();
   }, [hasQuery, searchHasNext, searchFetching, fetchNextSearch, hasGenre, discoverHasNext, discoverFetching, fetchNextDiscover]);
 
-  // Infinite scroll observer
   useEffect(() => {
     const el = bottomRef.current;
     if (!el) return;
@@ -81,7 +92,7 @@ export default function Search() {
     return () => observer.disconnect();
   }, [loadMore]);
 
-  const showEmpty = !hasQuery && !hasGenre;
+  const showEmpty     = !hasQuery && !hasGenre;
   const showNoResults = (hasQuery || hasGenre) && allResults.length === 0 && !isFetching;
   const showSkeletons = isFetching && allResults.length === 0;
 
@@ -89,6 +100,14 @@ export default function Search() {
     setRawQuery("");
     setDebouncedQuery("");
     setSelectedGenre(null);
+  }
+
+  function handleResultClick(movie: Movie) {
+    if (movie.media_type === "tv") {
+      navigate(`/tv/${movie.id}`);
+    } else {
+      navigate(`/movie/${movie.id}`);
+    }
   }
 
   return (
@@ -102,7 +121,6 @@ export default function Search() {
             What are you <span className="text-cyan-400">looking for?</span>
           </h1>
 
-          {/* Search Input */}
           <div
             className={`flex items-center gap-3 rounded-2xl px-5 py-4 border transition-all duration-300 ${
               rawQuery
@@ -117,7 +135,7 @@ export default function Search() {
               autoFocus
               value={rawQuery}
               onChange={(e) => setRawQuery(e.target.value)}
-              placeholder="Search movies, titles, genres..."
+              placeholder="Search movies, TV shows, genres..."
               className="flex-1 bg-transparent text-white text-base outline-none placeholder-white/25 font-medium"
             />
             {isFetching && rawQuery && (
@@ -158,7 +176,6 @@ export default function Search() {
         </div>
       </div>
 
-      {/* Clear Filters */}
       {(hasQuery || hasGenre) && (
         <div className="px-4 md:px-12 mb-4">
           <button
@@ -171,25 +188,22 @@ export default function Search() {
       )}
 
       <div className="px-4 md:px-12">
-        {/* Empty state */}
         {showEmpty && (
           <div className="max-w-2xl mx-auto animate-fadeIn pt-4">
             <p className="text-white/30 text-xs font-semibold uppercase tracking-widest text-center mb-5">or browse by genre above</p>
             <div className="flex flex-col items-center gap-4 pt-8">
               <SearchIcon className="w-14 h-14 text-gray-700" />
-              <p className="text-white/40 text-base text-center">Search for your favorite movies or pick a genre</p>
+              <p className="text-white/40 text-base text-center">Search for movies & TV shows or pick a genre</p>
             </div>
           </div>
         )}
 
-        {/* Skeleton loading */}
         {showSkeletons && (
           <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
             {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         )}
 
-        {/* No results */}
         {showNoResults && (
           <div className="flex flex-col items-center justify-center gap-3 pt-16 animate-fadeIn">
             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-2">
@@ -202,7 +216,6 @@ export default function Search() {
           </div>
         )}
 
-        {/* Results grid */}
         {allResults.length > 0 && (
           <div className="animate-fadeIn">
             <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-5">
@@ -211,20 +224,20 @@ export default function Search() {
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
               {allResults.map((movie) => (
                 <button
-                  key={`${movie.id}-${movie.title}`}
-                  onClick={() => navigate(`/movie/${movie.id}`)}
+                  key={`${movie.media_type ?? "movie"}-${movie.id}`}
+                  onClick={() => handleResultClick(movie)}
                   className="flex flex-col gap-2 text-left group"
                 >
                   <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#222] group-hover:ring-2 group-hover:ring-cyan-400 transition-all duration-200 shadow-lg">
                     {movie.poster_path ? (
                       <img
                         src={tmdb.imgUrl(movie.poster_path, "w300")}
-                        alt={movie.title}
+                        alt={movie.title || movie.name}
                         loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white/20 text-xs text-center p-2">{movie.title}</div>
+                      <div className="w-full h-full flex items-center justify-center text-white/20 text-xs text-center p-2">{movie.title || movie.name}</div>
                     )}
                     {movie.vote_average > 0 && (
                       <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-black/70 backdrop-blur-sm rounded-md px-1.5 py-0.5">
@@ -232,22 +245,28 @@ export default function Search() {
                         <span className="text-yellow-400 text-[10px] font-bold">{movie.vote_average.toFixed(1)}</span>
                       </div>
                     )}
+                    {movie.media_type === "tv" && (
+                      <div className="absolute top-2 left-2 bg-cyan-400/90 rounded-md px-1.5 py-0.5 flex items-center gap-0.5">
+                        <Tv className="w-2.5 h-2.5 text-black" />
+                        <span className="text-black text-[9px] font-bold">TV</span>
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-cyan-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                   </div>
                   <div>
-                    <p className="text-white text-xs font-semibold truncate group-hover:text-cyan-400 transition-colors duration-200">{movie.title}</p>
-                    {movie.release_date && <p className="text-white/35 text-[10px] mt-0.5">{movie.release_date.slice(0, 4)}</p>}
+                    <p className="text-white text-xs font-semibold truncate group-hover:text-cyan-400 transition-colors duration-200">{movie.title || movie.name}</p>
+                    {(movie.release_date || movie.first_air_date) && (
+                      <p className="text-white/35 text-[10px] mt-0.5">{(movie.release_date || movie.first_air_date || "").slice(0, 4)}</p>
+                    )}
                   </div>
                 </button>
               ))}
 
-              {/* Skeleton appends while fetching next page */}
               {isFetching && allResults.length > 0 && Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={`sk-${i}`} />)}
             </div>
           </div>
         )}
 
-        {/* Infinite scroll trigger */}
         <div ref={bottomRef} className="h-10 mt-4" />
       </div>
     </div>

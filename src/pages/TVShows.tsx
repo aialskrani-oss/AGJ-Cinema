@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Play, Info } from "lucide-react";
 import MovieRow from "../components/MovieRow";
@@ -9,29 +9,33 @@ import { tmdb, tvToMovie } from "../api/tmdb";
 export default function TVShows() {
   const [, navigate] = useLocation();
 
-  const { data: popular }    = usePopularTV();
-  const { data: topRated }   = useTopRatedTV();
-  const { data: airingToday} = useAiringTodayTV();
-  const { data: onTheAir }   = useOnTheAirTV();
+  const { data: popular }     = usePopularTV();
+  const { data: topRated }    = useTopRatedTV();
+  const { data: airingToday } = useAiringTodayTV();
+  const { data: onTheAir }    = useOnTheAirTV();
 
+  useEffect(() => {
+    document.title = "TV Shows — AGJ Cinema";
+    return () => { document.title = "AGJ Cinema"; };
+  }, []);
+
+  // ✅ Fix: use [popular] as dependency — not [popular !== undefined]
   const featured = useMemo(() => {
     if (!popular || popular.length === 0) return undefined;
     const idx = Math.floor(Math.random() * Math.min(5, popular.length));
     return popular[idx];
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [popular !== undefined]);
+  }, [popular]);
 
-  const popularMovies    = popular?.map(tvToMovie)    ?? [];
-  const topRatedMovies   = topRated?.map(tvToMovie)   ?? [];
+  const popularMovies     = popular?.map(tvToMovie)     ?? [];
+  const topRatedMovies    = topRated?.map(tvToMovie)    ?? [];
   const airingTodayMovies = airingToday?.map(tvToMovie) ?? [];
-  const onTheAirMovies   = onTheAir?.map(tvToMovie)   ?? [];
+  const onTheAirMovies    = onTheAir?.map(tvToMovie)    ?? [];
 
   function handleSelect(m: Movie) { navigate(`/tv/${m.id}`); }
   function handlePlay(m: Movie)   { navigate(`/watch/tv/${m.id}/1/1`); }
 
   return (
     <div className="min-h-screen bg-[#141414] animate-fadeIn pb-20 md:pb-0">
-      {/* Featured Hero */}
       {featured && (
         <div className="relative h-[80vh] overflow-hidden">
           {featured.backdrop_path ? (

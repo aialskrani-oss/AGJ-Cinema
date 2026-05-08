@@ -1,6 +1,15 @@
+// ── Dev guard ───────────────────────────────────────────────────────────────
+if (import.meta.env.DEV && !import.meta.env.VITE_TMDB_API_KEY) {
+  console.warn(
+    "[AGJ Cinema] ⚠️  VITE_TMDB_API_KEY is not set.\n" +
+    "Copy .env.example to .env and fill in your TMDB key.\n" +
+    "Get a free key at https://www.themoviedb.org/settings/api"
+  );
+}
+
 export const tmdb = {
-  BASE_URL: "https://api.themoviedb.org/3",
-  API_KEY: import.meta.env.VITE_TMDB_API_KEY as string,
+  BASE_URL:  "https://api.themoviedb.org/3",
+  API_KEY:   import.meta.env.VITE_TMDB_API_KEY as string,
   PROXY_URL: "/api/tmdb",
   imgUrl(path: string | null, size: string = "w500"): string {
     if (!path) return "/placeholder-poster.svg";
@@ -105,28 +114,31 @@ export interface PagedResponse<T> {
 
 export function tvToMovie(tv: TVShow): Movie {
   return {
-    id: tv.id,
-    title: tv.name,
-    name: tv.name,
-    overview: tv.overview,
-    poster_path: tv.poster_path,
+    id:           tv.id,
+    title:        tv.name,
+    name:         tv.name,
+    overview:     tv.overview,
+    poster_path:  tv.poster_path,
     backdrop_path: tv.backdrop_path,
     release_date: tv.first_air_date ?? "",
     first_air_date: tv.first_air_date,
     vote_average: tv.vote_average,
-    vote_count: tv.vote_count,
-    genre_ids: tv.genre_ids,
-    adult: false,
-    media_type: "tv",
+    vote_count:   tv.vote_count,
+    genre_ids:    tv.genre_ids,
+    adult:        false,
+    media_type:   "tv",
   };
 }
 
 async function apiFetch<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
   let url: URL;
   if (import.meta.env.PROD) {
+    // Production: route through Vercel Edge Function proxy (hides API key)
     url = new URL(tmdb.PROXY_URL, window.location.origin);
     url.searchParams.set("_path", endpoint);
   } else {
+    // Development: call TMDB directly (API key is local-only)
+    if (!tmdb.API_KEY) throw new Error("VITE_TMDB_API_KEY is not configured. See .env.example");
     url = new URL(`${tmdb.BASE_URL}${endpoint}`);
     url.searchParams.set("api_key", tmdb.API_KEY);
   }
@@ -134,7 +146,14 @@ async function apiFetch<T>(endpoint: string, params: Record<string, string> = {}
     url.searchParams.set(key, val);
   }
   const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`TMDB fetch failed: ${res.status}`);
+  if (!res.ok) {
+    const msg = res.status === 401
+      ? "Invalid TMDB API key. Check VITE_TMDB_API_KEY in your .env file."
+      : res.status === 429
+      ? "Too many requests. Please wait a moment."
+      : `TMDB API error: ${res.status}`;
+    throw new Error(msg);
+  }
   return res.json() as Promise<T>;
 }
 
@@ -175,8 +194,8 @@ export async function searchMovies(query: string, page: number = 1): Promise<Pag
 export async function discoverByGenre(genreId: number, page: number = 1): Promise<PagedResponse<Movie>> {
   return apiFetch<PagedResponse<Movie>>("/discover/movie", {
     with_genres: String(genreId),
-    sort_by: "popularity.desc",
-    page: String(page),
+    sort_by:     "popularity.desc",
+    page:        String(page),
   });
 }
 export async function searchMulti(query: string, page: number = 1): Promise<PagedResponse<Movie>> {

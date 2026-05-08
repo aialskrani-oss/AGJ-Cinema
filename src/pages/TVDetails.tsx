@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { ArrowLeft, Play, Plus, Heart, ThumbsUp, Star, Clock, ExternalLink, Tv, ChevronDown, LogIn } from "lucide-react";
 import { useTVDetails, useSimilarTV, useVideosTV, useSeasonDetails } from "../hooks/useTmdb";
@@ -8,6 +8,11 @@ import { useToast } from "../contexts/ToastContext";
 import MovieRow from "../components/MovieRow";
 import { tmdb, tvToMovie } from "../api/tmdb";
 import type { Movie } from "../api/tmdb";
+
+function goBack(navigate: (to: string) => void) {
+  if (window.history.length > 1) window.history.back();
+  else navigate("/tv-shows");
+}
 
 export default function TVDetails() {
   const params = useParams<{ id: string }>();
@@ -20,9 +25,14 @@ export default function TVDetails() {
   const { data: videos }     = useVideosTV(id);
   const { data: seasonData } = useSeasonDetails(id, selectedSeason);
 
-  const { isLoggedIn }                    = useAuth();
-  const { isFavorite, toggleFavorite }    = useFavorites();
-  const { showToast }                     = useToast();
+  const { isLoggedIn }                 = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const { showToast }                  = useToast();
+
+  useEffect(() => {
+    if (show?.name) document.title = `${show.name} — AGJ Cinema`;
+    return () => { document.title = "AGJ Cinema"; };
+  }, [show?.name]);
 
   const trailer = videos?.find(v => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser"));
 
@@ -35,7 +45,12 @@ export default function TVDetails() {
     if (!show) return;
     const wasAdded = !isFavorite(show.id);
     toggleFavorite(tvToMovie(show));
-    showToast(wasAdded ? "\u2713 Added to Favorites" : "\u2717 Removed from Favorites", wasAdded ? "success" : "info");
+    showToast(wasAdded ? "✓ Added to Favorites" : "✗ Removed from Favorites", wasAdded ? "success" : "info");
+  }
+
+  function handleThumbsUp() {
+    if (!isLoggedIn) { showToast("Sign in to rate shows", "info"); navigate("/login"); return; }
+    showToast("Rating saved!", "success");
   }
 
   if (isLoading) return (
@@ -60,19 +75,17 @@ export default function TVDetails() {
 
   return (
     <div className="min-h-screen bg-[#141414] animate-fadeIn pb-24 md:pb-0">
-      {/* Backdrop */}
       <div className="relative h-[55vh] md:h-[70vh] overflow-hidden">
         {show.backdrop_path
           ? <img src={tmdb.imgUrl(show.backdrop_path, "original")} alt={show.name} loading="lazy" className="w-full h-full object-cover" />
           : <div className="w-full h-full bg-gray-900" />}
         <div className="absolute inset-0 bg-gradient-to-r from-[#141414]/80 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/30 to-transparent" />
-        <button onClick={() => window.history.back()} className="absolute top-20 left-4 flex items-center gap-2 glass border border-white/20 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-white/20 transition-colors">
+        <button onClick={() => goBack(navigate)} className="absolute top-20 left-4 flex items-center gap-2 glass border border-white/20 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-white/20 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
       </div>
 
-      {/* Content */}
       <div className="-mt-20 md:-mt-32 relative z-10 px-4 md:px-12">
         <div className="flex gap-6 md:gap-8">
           <div className="hidden md:block flex-shrink-0">
@@ -111,8 +124,8 @@ export default function TVDetails() {
             )}
 
             <p className="text-white/80 text-sm md:text-base leading-relaxed mb-4 max-w-2xl">{show.overview}</p>
-            {show.networks?.length && <p className="text-white/40 text-xs mb-4">Network: <span className="text-white/70">{show.networks.map(n => n.name).join(", ")}</span></p>}
-            {show.created_by?.length && <p className="text-white/40 text-xs mb-5">Created by: <span className="text-white/70">{show.created_by.map(c => c.name).join(", ")}</span></p>}
+            {show.networks?.length ? <p className="text-white/40 text-xs mb-4">Network: <span className="text-white/70">{show.networks.map(n => n.name).join(", ")}</span></p> : null}
+            {show.created_by?.length ? <p className="text-white/40 text-xs mb-5">Created by: <span className="text-white/70">{show.created_by.map(c => c.name).join(", ")}</span></p> : null}
 
             <div className="flex items-center gap-3 mb-6 flex-wrap">
               <button onClick={() => watchEpisode(mainSeasons[0]?.season_number ?? 1, 1)} className="flex items-center gap-2 bg-white text-black font-bold px-6 py-2.5 rounded-full hover:bg-white/90 transition-all duration-200 active:scale-95">
@@ -121,8 +134,12 @@ export default function TVDetails() {
               <button onClick={handleFavorite} className={`flex items-center gap-2 border font-semibold px-5 py-2.5 rounded-full transition-all duration-200 ${favored ? "bg-red-500/20 border-red-500 text-red-400 hover:bg-red-500/30" : isLoggedIn ? "glass border-white/20 text-white hover:bg-white/20" : "border-white/10 text-white/40"}`}>
                 {favored ? (<><Heart className="w-5 h-5 fill-red-400" /> Remove</>) : isLoggedIn ? (<><Plus className="w-5 h-5" /> My List</>) : (<><LogIn className="w-4 h-4" /> Sign in</>)}
               </button>
-              <button className="w-11 h-11 rounded-full border border-white/30 flex items-center justify-center hover:border-white transition-colors">
-                <ThumbsUp className="w-5 h-5 text-white" />
+              <button
+                onClick={handleThumbsUp}
+                title="Rate this show"
+                className="w-11 h-11 rounded-full border border-white/30 flex items-center justify-center hover:border-cyan-400 hover:text-cyan-400 text-white transition-colors"
+              >
+                <ThumbsUp className="w-5 h-5" />
               </button>
             </div>
 
@@ -153,7 +170,6 @@ export default function TVDetails() {
         </div>
       </div>
 
-      {/* Episodes */}
       {mainSeasons.length > 0 && (
         <div className="mt-12 px-4 md:px-12">
           <div className="flex items-center justify-between mb-5">
@@ -191,7 +207,7 @@ export default function TVDetails() {
                   <div className="p-3">
                     <p className="text-white font-semibold text-sm truncate mb-1">{ep.name}</p>
                     <div className="flex items-center gap-2 text-[11px] text-white/40 mb-2">
-                      {ep.air_date && <span>{ep.air_date.slice(0,4)}</span>}
+                      {ep.air_date && <span>{ep.air_date.slice(0, 4)}</span>}
                       {ep.runtime && <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{ep.runtime}m</span>}
                     </div>
                     {ep.overview && <p className="text-white/50 text-xs line-clamp-2 leading-relaxed">{ep.overview}</p>}

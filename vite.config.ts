@@ -13,7 +13,7 @@ export default defineConfig({
       strategies: "generateSW",
       registerType: "autoUpdate",
       injectRegister: "auto",
-      includeAssets: ["favicon.png", "apple-touch-icon.png", "icon-192x192.png", "icon-512x512.png"],
+      includeAssets: ["favicon.png", "apple-touch-icon.png", "icon-192x192.png", "icon-512x512.png", "offline.html"],
       manifest: {
         name: "AGJ Cinema",
         short_name: "AGJ Cinema",
@@ -42,6 +42,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
+        // ✅ Fix: show offline.html when user is offline and page not cached
+        navigateFallback: "/offline.html",
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
             urlPattern: /^\/api\/tmdb/,

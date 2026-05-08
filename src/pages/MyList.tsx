@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Bookmark, Clock, Heart, CheckCircle, LogIn, X, Play, Search } from "lucide-react";
+import { Clock, Heart, CheckCircle, LogIn, X, Play, Search } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useFavorites } from "../hooks/useFavorites";
 import { tmdb } from "../api/tmdb";
@@ -14,6 +14,11 @@ export default function MyList() {
   const [tab, setTab] = useState<Tab>("watchlist");
   const { favorites, watchlist, removeFavorite, removeFromWatchlist } = useFavorites();
   const { showToast } = useToast();
+
+  useEffect(() => {
+    document.title = "My Library — AGJ Cinema";
+    return () => { document.title = "AGJ Cinema"; };
+  }, []);
 
   if (!isLoggedIn) {
     return (
@@ -33,17 +38,16 @@ export default function MyList() {
   }
 
   const inProgress = watchlist.filter((e) => !e.completed).sort((a, b) => new Date(b.lastWatched).getTime() - new Date(a.lastWatched).getTime());
-  const completed = watchlist.filter((e) => e.completed).sort((a, b) => new Date(b.completedAt ?? b.lastWatched).getTime() - new Date(a.completedAt ?? a.lastWatched).getTime());
+  const completed  = watchlist.filter((e) => e.completed).sort((a, b) => new Date(b.completedAt ?? b.lastWatched).getTime() - new Date(a.completedAt ?? a.lastWatched).getTime());
 
   const TABS: { key: Tab; label: string; icon: typeof Clock; count: number }[] = [
-    { key: "watchlist", label: "Watchlist", icon: Clock, count: inProgress.length },
-    { key: "favorites", label: "Favorites", icon: Heart, count: favorites.length },
-    { key: "history", label: "History", icon: CheckCircle, count: completed.length },
+    { key: "watchlist", label: "Watchlist", icon: Clock,        count: inProgress.length },
+    { key: "favorites", label: "Favorites", icon: Heart,        count: favorites.length },
+    { key: "history",   label: "History",   icon: CheckCircle,  count: completed.length },
   ];
 
   return (
     <div className="min-h-screen bg-[#141414] pt-20 pb-24 md:pb-10 animate-fadeIn">
-      {/* Header */}
       <div className="px-4 md:px-12 mb-6">
         <h1 className="text-white text-2xl md:text-3xl font-black mt-6 mb-1">
           {user!.username}<span className="text-cyan-400">'s</span> Library
@@ -51,7 +55,6 @@ export default function MyList() {
         <p className="text-white/40 text-sm">{favorites.length + watchlist.length} items total</p>
       </div>
 
-      {/* Tabs */}
       <div className="px-4 md:px-12 mb-6">
         <div className="flex gap-1 bg-[#1a1a1a] rounded-2xl p-1 max-w-md">
           {TABS.map(({ key, label, icon: Icon, count }) => (
@@ -59,9 +62,7 @@ export default function MyList() {
               key={key}
               onClick={() => setTab(key)}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                tab === key
-                  ? "bg-cyan-400 text-black shadow"
-                  : "text-white/50 hover:text-white"
+                tab === key ? "bg-cyan-400 text-black shadow" : "text-white/50 hover:text-white"
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -77,14 +78,13 @@ export default function MyList() {
       </div>
 
       <div className="px-4 md:px-12">
-        {/* ── WATCHLIST TAB ─────────────────────────────────────────────── */}
         {tab === "watchlist" && (
           inProgress.length === 0 ? (
             <EmptyState icon={Clock} message="No movies in progress." sub="Start watching to track your progress!" action="Browse Movies" onAction={() => navigate("/")} />
           ) : (
             <div className="flex flex-col gap-3">
               {inProgress.map((entry) => {
-                const runtimeSec = (entry.movie.runtime ?? 120) * 60;
+                const runtimeSec  = (entry.movie.runtime ?? 120) * 60;
                 const progressPct = Math.min(100, (entry.progress / runtimeSec) * 100);
                 return (
                   <div key={entry.movie.id} className="flex gap-4 bg-[#181818] rounded-2xl p-3 border border-white/5 hover:border-white/10 transition-colors group">
@@ -103,7 +103,7 @@ export default function MyList() {
                           <div className="h-full bg-cyan-400 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
                         </div>
                         <div className="flex gap-2">
-                          <button onClick={() => navigate(`/movie/${entry.movie.id}`)} className="flex items-center gap-1.5 bg-white/10 hover:bg-cyan-400 hover:text-black text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-all">
+                          <button onClick={() => navigate(`/watch/movie/${entry.movie.id}`)} className="flex items-center gap-1.5 bg-white/10 hover:bg-cyan-400 hover:text-black text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-all">
                             <Play className="w-3 h-3 fill-current" /> Continue
                           </button>
                           <button onClick={() => { removeFromWatchlist(entry.movie.id); showToast("Removed from watchlist", "info"); }} className="text-white/30 hover:text-red-400 p-1.5 rounded-lg transition-colors">
@@ -119,7 +119,6 @@ export default function MyList() {
           )
         )}
 
-        {/* ── FAVORITES TAB ─────────────────────────────────────────────── */}
         {tab === "favorites" && (
           favorites.length === 0 ? (
             <EmptyState icon={Heart} message="Your favorites list is empty." sub="Discover movies and add them to your favorites!" action="Discover Movies" onAction={() => navigate("/search")} />
@@ -132,7 +131,6 @@ export default function MyList() {
                       ? <img src={tmdb.imgUrl(movie.poster_path, "w300")} alt={movie.title} loading="lazy" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                       : <div className="w-full h-full flex items-center justify-center text-white/20 text-xs p-2 text-center">{movie.title}</div>}
                   </div>
-                  {/* Remove button */}
                   <button
                     onClick={(e) => { e.stopPropagation(); removeFavorite(movie.id); showToast("Removed from favorites", "info"); }}
                     className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/70 border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
@@ -147,7 +145,6 @@ export default function MyList() {
           )
         )}
 
-        {/* ── HISTORY TAB ───────────────────────────────────────────────── */}
         {tab === "history" && (
           completed.length === 0 ? (
             <EmptyState icon={CheckCircle} message="No watched movies yet." sub="Finish watching a movie to see it here." action="Browse Movies" onAction={() => navigate("/")} />
@@ -166,9 +163,7 @@ export default function MyList() {
                     </div>
                   </div>
                   <p className="text-white text-xs font-medium truncate mt-1.5">{entry.movie.title}</p>
-                  {entry.completedAt && (
-                    <p className="text-white/35 text-[10px]">{new Date(entry.completedAt).toLocaleDateString()}</p>
-                  )}
+                  {entry.completedAt && <p className="text-white/35 text-[10px]">{new Date(entry.completedAt).toLocaleDateString()}</p>}
                 </div>
               ))}
             </div>

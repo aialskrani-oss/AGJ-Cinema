@@ -1,12 +1,27 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { ChevronRight, LogIn } from "lucide-react";
+import { ChevronRight, LogIn, Wifi, WifiOff } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
+const WIFI_KEY = "agj_wifi_only";
+
 export default function Profile() {
-  const [wifiOnly, setWifiOnly] = useState(false);
+  const [wifiOnly, setWifiOnly] = useState<boolean>(() => {
+    try { return localStorage.getItem(WIFI_KEY) === "true"; } catch { return false; }
+  });
   const { isLoggedIn, user, logout } = useAuth();
   const [, navigate] = useLocation();
+
+  useEffect(() => {
+    document.title = isLoggedIn ? `${user?.username} — AGJ Cinema` : "Profile — AGJ Cinema";
+    return () => { document.title = "AGJ Cinema"; };
+  }, [isLoggedIn, user?.username]);
+
+  function toggleWifi() {
+    const next = !wifiOnly;
+    setWifiOnly(next);
+    try { localStorage.setItem(WIFI_KEY, String(next)); } catch { /* ignore */ }
+  }
 
   if (!isLoggedIn) {
     return (
@@ -58,12 +73,20 @@ export default function Profile() {
         </button>
 
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
-          <div>
-            <p className="text-white font-medium">App Settings</p>
-            <p className="text-white/40 text-xs mt-0.5">Download via Wi-Fi only</p>
+          <div className="flex items-center gap-3">
+            {wifiOnly
+              ? <Wifi className="w-4 h-4 text-cyan-400" />
+              : <WifiOff className="w-4 h-4 text-white/30" />}
+            <div>
+              <p className="text-white font-medium">Wi-Fi Only</p>
+              <p className="text-white/40 text-xs mt-0.5">
+                {wifiOnly ? "Enabled — data saving is on" : "Disabled — using any connection"}
+              </p>
+            </div>
           </div>
           <button
-            onClick={() => setWifiOnly(!wifiOnly)}
+            onClick={toggleWifi}
+            aria-label={wifiOnly ? "Disable Wi-Fi only" : "Enable Wi-Fi only"}
             className={`relative w-11 h-6 rounded-full transition-colors duration-300 flex-shrink-0 ${wifiOnly ? "bg-cyan-400" : "bg-gray-600"}`}
           >
             <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-300 ${wifiOnly ? "translate-x-5" : "translate-x-0.5"}`} />
@@ -83,7 +106,7 @@ export default function Profile() {
         </button>
       </div>
 
-      <p className="text-center text-white/20 text-xs mt-8">AGJ Cinema v1.0.0</p>
+      <p className="text-center text-white/20 text-xs mt-8">AGJ Cinema v1.1.0</p>
     </div>
   );
 }

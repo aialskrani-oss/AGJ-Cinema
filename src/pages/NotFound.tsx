@@ -1,7 +1,13 @@
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 
 export default function NotFound() {
   const [, navigate] = useLocation();
+
+  useEffect(() => {
+    document.title = "404 Not Found — AGJ Cinema";
+    return () => { document.title = "AGJ Cinema"; };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#141414] flex flex-col items-center justify-center gap-4 text-center px-4 animate-fadeIn">
