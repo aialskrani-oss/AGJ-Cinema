@@ -45,6 +45,14 @@ export default function HeroBanner({ movies, onPlay }: HeroBannerProps) {
   const matchPercent = Math.round(featured.vote_average * 10);
   const year = featured.release_date?.slice(0, 4) ?? "";
 
+  function handleMoreInfo() {
+    if (featured.media_type === "tv") {
+      navigate(`/tv/${featured.id}`);
+    } else {
+      navigate(`/movie/${featured.id}`);
+    }
+  }
+
   return (
     <div className="relative h-[85vh] md:h-screen overflow-hidden">
       {/* Backdrop */}
@@ -81,6 +89,9 @@ export default function HeroBanner({ movies, onPlay }: HeroBannerProps) {
           <span className="border border-white/40 text-white/70 text-xs px-1 rounded">
             {featured.adult ? "18+" : "PG-13"}
           </span>
+          {featured.media_type === "tv" && (
+            <span className="bg-cyan-400/20 border border-cyan-400/40 text-cyan-400 text-xs px-2 py-0.5 rounded-full">TV</span>
+          )}
         </div>
 
         <p className="text-white/80 text-sm md:text-base line-clamp-3 mb-5 leading-relaxed">
@@ -96,7 +107,7 @@ export default function HeroBanner({ movies, onPlay }: HeroBannerProps) {
             Play
           </button>
           <button
-            onClick={() => navigate(`/movie/${featured.id}`)}
+            onClick={handleMoreInfo}
             className="flex items-center gap-2 glass border border-white/20 text-white font-semibold px-6 py-2.5 rounded-full hover:bg-white/20 transition-all duration-200 active:scale-95"
           >
             <Info className="w-5 h-5" />
