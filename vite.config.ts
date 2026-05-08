@@ -41,18 +41,6 @@ export default defineConfig({
             purpose: "any maskable",
           },
         ],
-        shortcuts: [
-          {
-            name: "Search Movies",
-            url: "/search",
-            description: "Search for movies and shows",
-          },
-          {
-            name: "TV Shows",
-            url: "/tv-shows",
-            description: "Browse TV shows",
-          },
-        ],
       },
       injectManifest: {
         globPatterns: ["**/*.{js,css,html,ico,svg,woff,woff2,ttf}"],
@@ -66,9 +54,8 @@ export default defineConfig({
     },
     dedupe: ["react", "react-dom"],
   },
-  root: path.resolve(import.meta.dirname),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist"),
+    outDir: "dist",
     emptyOutDir: true,
   },
   server: {
