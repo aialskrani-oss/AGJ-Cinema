@@ -150,6 +150,13 @@ export default function MoviePlayer({
       }
     } catch { /* localStorage unavailable */ }
 
+    // Block popup windows opened by the iframe
+    const origOpen = window.open;
+    window.open = (..._args) => {
+      console.log("[AGJ] Blocked popup attempt");
+      return null;
+    };
+
     // ESC hint fades after 3s
     const escTimer = setTimeout(() => setShowEscHint(false), 3000);
 
@@ -174,6 +181,7 @@ export default function MoviePlayer({
       if (progressTimer.current) clearInterval(progressTimer.current);
       if (hideTimer.current)    clearTimeout(hideTimer.current);
       document.removeEventListener("fullscreenchange", onFsChange);
+      window.open = origOpen;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -391,7 +399,7 @@ export default function MoviePlayer({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-[100] bg-black flex items-center justify-center transition-opacity duration-300"
+      className="fixed inset-0 z-[100] bg-black/98 flex items-center justify-center transition-opacity duration-300"
       style={{ opacity: visible ? 1 : 0, filter: `brightness(${brightness})` }}
       onMouseMove={bringControlsUp}
       onMouseLeave={() => {
@@ -413,6 +421,17 @@ export default function MoviePlayer({
       {/* ── Inner container ───────────────────────────────────────────────── */}
       <div className="relative w-full h-full max-w-7xl mx-auto flex flex-col p-2 md:p-4">
 
+        {/* ── Permanent close button — always above iframe ─────────────── */}
+        <div className="absolute top-3 right-3 z-[60]">
+          <button
+            onClick={handleClose}
+            aria-label="Close player"
+            className="w-12 h-12 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 flex items-center justify-center shadow-2xl transition-all ring-2 ring-red-500/40"
+          >
+            <X className="w-6 h-6 text-white" />
+          </button>
+        </div>
+
         {/* ── Iframe wrapper ──────────────────────────────────────────────── */}
         <div
           className="relative flex-1 rounded-xl overflow-hidden"
@@ -427,7 +446,7 @@ export default function MoviePlayer({
             className="w-full h-full border-0"
             allowFullScreen
             allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-forms"
+            sandbox="allow-scripts allow-same-origin allow-presentation"
             loading="eager"
             style={{ opacity: loadStage === "ok" ? 1 : 0, transition: "opacity 0.4s" }}
             onLoad={() => {
@@ -436,6 +455,22 @@ export default function MoviePlayer({
               if (loadTimer15.current) clearTimeout(loadTimer15.current);
             }}
           />
+
+          {/* ── Edge shields — intercept popup-trigger clicks at iframe borders ─ */}
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            {/* top strip */}
+            <div className="absolute top-0 left-0 right-0 h-14 pointer-events-auto"
+              onClick={(e) => e.stopPropagation()} style={{ background: "transparent" }} />
+            {/* bottom strip */}
+            <div className="absolute bottom-0 left-0 right-0 h-14 pointer-events-auto"
+              onClick={(e) => e.stopPropagation()} style={{ background: "transparent" }} />
+            {/* left strip */}
+            <div className="absolute top-14 bottom-14 left-0 w-10 pointer-events-auto"
+              onClick={(e) => e.stopPropagation()} style={{ background: "transparent" }} />
+            {/* right strip */}
+            <div className="absolute top-14 bottom-14 right-0 w-10 pointer-events-auto"
+              onClick={(e) => e.stopPropagation()} style={{ background: "transparent" }} />
+          </div>
 
           {/* ── Loading / error overlay ────────────────────────────────── */}
           {loadStage !== "ok" && (
@@ -505,13 +540,7 @@ export default function MoviePlayer({
               <p className="text-white/90 font-semibold text-sm md:text-base truncate leading-tight">{title}</p>
               <span className="text-cyan-400/70 text-[10px] font-medium tracking-wide">AGJ Cinema</span>
             </div>
-            <button
-              onClick={handleClose}
-              aria-label="Close player"
-              className="flex-shrink-0 w-10 h-10 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center shadow-lg transition-colors"
-            >
-              <X className="w-5 h-5 text-white" />
-            </button>
+            <div className="w-10 h-10 flex-shrink-0" />{/* close btn moved outside */}
           </div>
 
           {/* ── ESC hint ──────────────────────────────────────────────── */}
