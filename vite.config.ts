@@ -10,9 +10,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      strategies: "injectManifest",
-      srcDir: "src",
-      filename: "sw.ts",
+      strategies: "generateSW",
       registerType: "autoUpdate",
       injectRegister: "auto",
       includeAssets: ["favicon.png", "apple-touch-icon.png", "icon-192x192.png", "icon-512x512.png"],
@@ -42,9 +40,38 @@ export default defineConfig({
           },
         ],
       },
-      injectManifest: {
-        globPatterns: ["**/*.{js,css,html,ico,svg,woff,woff2,ttf}"],
-        globIgnores: ["**/node_modules/**", "**/dev-dist/**"],
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
+        runtimeCaching: [
+          {
+            urlPattern: /^\/api\/tmdb/,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "tmdb-proxy-v1",
+              networkTimeoutSeconds: 5,
+              expiration: { maxEntries: 200, maxAgeSeconds: 86400 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/image\.tmdb\.org\//,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "tmdb-images-v1",
+              expiration: { maxEntries: 500, maxAgeSeconds: 2592000 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "google-fonts-v1",
+              expiration: { maxEntries: 10, maxAgeSeconds: 31536000 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
     }),
   ],
