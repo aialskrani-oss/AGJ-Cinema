@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { ArrowLeft, Play, Plus, ThumbsUp, Star, Clock, ExternalLink, Tv, ChevronDown } from "lucide-react";
+import { ArrowLeft, Play, Plus, Heart, ThumbsUp, Star, Clock, ExternalLink, Tv, ChevronDown, LogIn } from "lucide-react";
 import { useTVDetails, useSimilarTV, useVideosTV, useSeasonDetails } from "../hooks/useTmdb";
+import { useAuth } from "../contexts/AuthContext";
+import { useFavorites } from "../hooks/useFavorites";
+import { useToast } from "../contexts/ToastContext";
 import MovieRow from "../components/MovieRow";
 import MoviePlayer from "../components/MoviePlayer";
 import { tmdb, tvToMovie } from "../api/tmdb";
@@ -25,6 +28,10 @@ export default function TVDetails() {
   const { data: videos } = useVideosTV(id);
   const { data: seasonData } = useSeasonDetails(id, selectedSeason);
 
+  const { isLoggedIn } = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const { showToast } = useToast();
+
   const trailer = videos?.find((v) => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser"));
 
   function buildEpisodeUrl(seasonNum: number, episodeNum: number) {
@@ -35,6 +42,22 @@ export default function TVDetails() {
   function handleWatchEpisode(seasonNum: number, episodeNum: number, episodeTitle: string) {
     setPlayingUrl(buildEpisodeUrl(seasonNum, episodeNum));
     setPlayingTitle(episodeTitle);
+  }
+
+  function handleFavorite() {
+    if (!isLoggedIn) {
+      showToast("Sign in to add favorites", "info");
+      navigate("/login");
+      return;
+    }
+    if (!show) return;
+    const showAsMovie = tvToMovie(show);
+    const wasAdded = !isFavorite(show.id);
+    toggleFavorite(showAsMovie);
+    showToast(
+      wasAdded ? "\u2713 Added to Favorites" : "\u2717 Removed from Favorites",
+      wasAdded ? "success" : "info"
+    );
   }
 
   if (isLoading) {
@@ -60,8 +83,8 @@ export default function TVDetails() {
   const matchPercent = Math.round(show.vote_average * 10);
   const cast = show.credits?.cast?.slice(0, 8) ?? [];
   const mainSeasons = show.seasons?.filter((s) => s.season_number > 0) ?? [];
-
   const similarMovies: Movie[] = similar?.map(tvToMovie) ?? [];
+  const favored = isFavorite(show.id);
 
   return (
     <div className="min-h-screen bg-[#141414] animate-fadeIn pb-24 md:pb-0">
@@ -95,7 +118,6 @@ export default function TVDetails() {
           </div>
 
           <div className="flex-1 min-w-0">
-            {/* TV badge */}
             <div className="flex items-center gap-2 mb-2">
               <div className="flex items-center gap-1 bg-cyan-400/20 border border-cyan-400/40 text-cyan-400 text-xs px-2 py-0.5 rounded-full">
                 <Tv className="w-3 h-3" /> TV Show
@@ -139,30 +161,44 @@ export default function TVDetails() {
 
             <p className="text-white/80 text-sm md:text-base leading-relaxed mb-4 max-w-2xl">{show.overview}</p>
 
-            {/* Networks */}
             {show.networks && show.networks.length > 0 && (
               <p className="text-white/40 text-xs mb-4">
                 Network: <span className="text-white/70">{show.networks.map(n => n.name).join(", ")}</span>
               </p>
             )}
-
-            {/* Created by */}
             {show.created_by && show.created_by.length > 0 && (
               <p className="text-white/40 text-xs mb-5">
                 Created by: <span className="text-white/70">{show.created_by.map(c => c.name).join(", ")}</span>
               </p>
             )}
 
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-6 flex-wrap">
               <button
                 onClick={() => handleWatchEpisode(1, 1, `${show.name} — S1E1`)}
                 className="flex items-center gap-2 bg-white text-black font-bold px-6 py-2.5 rounded-full hover:bg-white/90 transition-all duration-200 active:scale-95"
               >
                 <Play className="w-5 h-5 fill-black" /> Watch S1E1
               </button>
-              <button className="flex items-center gap-2 glass border border-white/20 text-white font-semibold px-5 py-2.5 rounded-full hover:bg-white/20 transition-all duration-200">
-                <Plus className="w-5 h-5" /> My List
+
+              <button
+                onClick={handleFavorite}
+                className={`flex items-center gap-2 border font-semibold px-5 py-2.5 rounded-full transition-all duration-200 ${
+                  favored
+                    ? "bg-red-500/20 border-red-500 text-red-400 hover:bg-red-500/30"
+                    : isLoggedIn
+                    ? "glass border-white/20 text-white hover:bg-white/20"
+                    : "border-white/10 text-white/40"
+                }`}
+              >
+                {favored ? (
+                  <><Heart className="w-5 h-5 fill-red-400" /> Remove</>
+                ) : isLoggedIn ? (
+                  <><Plus className="w-5 h-5" /> My List</>
+                ) : (
+                  <><LogIn className="w-4 h-4" /> Sign in</>
+                )}
               </button>
+
               <button className="w-11 h-11 rounded-full border border-white/30 flex items-center justify-center hover:border-white transition-colors">
                 <ThumbsUp className="w-5 h-5 text-white" />
               </button>
@@ -179,7 +215,6 @@ export default function TVDetails() {
               </a>
             )}
 
-            {/* Cast */}
             {cast.length > 0 && (
               <div className="mb-2">
                 <h3 className="text-white/50 text-sm font-semibold uppercase tracking-wider mb-3">Cast</h3>
@@ -227,10 +262,7 @@ export default function TVDetails() {
           {seasonData?.episodes && seasonData.episodes.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {seasonData.episodes.map((ep) => (
-                <div
-                  key={ep.id}
-                  className="bg-[#181818] rounded-xl overflow-hidden border border-white/5 hover:border-cyan-400/30 transition-all duration-200 group"
-                >
+                <div key={ep.id} className="bg-[#181818] rounded-xl overflow-hidden border border-white/5 hover:border-cyan-400/30 transition-all duration-200 group">
                   <div className="relative aspect-video bg-gray-800">
                     {ep.still_path ? (
                       <img src={tmdb.imgUrl(ep.still_path, "w300")} alt={ep.name} loading="lazy" className="w-full h-full object-cover" />
@@ -244,7 +276,7 @@ export default function TVDetails() {
                         onClick={() => handleWatchEpisode(ep.season_number, ep.episode_number, `${show.name} — S${ep.season_number}E${ep.episode_number}: ${ep.name}`)}
                         className="flex items-center gap-2 bg-white text-black font-bold px-4 py-2 rounded-full text-sm hover:bg-cyan-400 transition-colors"
                       >
-                        <Play className="w-4 h-4 fill-black" /> Watch Episode
+                        <Play className="w-4 h-4 fill-black" /> Watch
                       </button>
                     </div>
                     <div className="absolute top-2 left-2 bg-black/70 text-white/80 text-xs px-2 py-0.5 rounded-md font-medium">
@@ -261,15 +293,9 @@ export default function TVDetails() {
                     <p className="text-white font-semibold text-sm truncate mb-1">{ep.name}</p>
                     <div className="flex items-center gap-2 text-[11px] text-white/40 mb-2">
                       {ep.air_date && <span>{ep.air_date.slice(0, 4)}</span>}
-                      {ep.runtime && (
-                        <span className="flex items-center gap-0.5">
-                          <Clock className="w-3 h-3" />{ep.runtime}m
-                        </span>
-                      )}
+                      {ep.runtime && <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{ep.runtime}m</span>}
                     </div>
-                    {ep.overview && (
-                      <p className="text-white/50 text-xs line-clamp-2 leading-relaxed">{ep.overview}</p>
-                    )}
+                    {ep.overview && <p className="text-white/50 text-xs line-clamp-2 leading-relaxed">{ep.overview}</p>}
                     <button
                       onClick={() => handleWatchEpisode(ep.season_number, ep.episode_number, `${show.name} — S${ep.season_number}E${ep.episode_number}: ${ep.name}`)}
                       className="mt-3 w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-cyan-400 hover:text-black text-white text-xs font-semibold py-2 rounded-lg transition-all duration-200"
@@ -288,7 +314,6 @@ export default function TVDetails() {
         </div>
       )}
 
-      {/* Similar shows */}
       {similarMovies.length > 0 && (
         <div className="mt-10">
           <MovieRow
@@ -301,14 +326,8 @@ export default function TVDetails() {
         </div>
       )}
 
-      {/* Player */}
       {playingUrl && (
-        <MoviePlayer
-          url={playingUrl}
-          title={playingTitle}
-          movieId={id}
-          onClose={() => setPlayingUrl(null)}
-        />
+        <MoviePlayer url={playingUrl} title={playingTitle} movieId={id} onClose={() => setPlayingUrl(null)} />
       )}
     </div>
   );

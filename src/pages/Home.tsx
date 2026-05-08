@@ -19,6 +19,7 @@ export default function Home() {
   const [, navigate] = useLocation();
   const [playingMovieId, setPlayingMovieId] = useState<number | null>(null);
   const [playingMovieTitle, setPlayingMovieTitle] = useState("");
+  const [playingMovie, setPlayingMovie] = useState<Movie | undefined>(undefined);
   const { isLoggedIn } = useAuth();
 
   const { data: trending } = useTrending();
@@ -39,8 +40,14 @@ export default function Home() {
   }
 
   function handlePlay(movie: Movie) {
+    // TV shows go to their details page (episode selection)
+    if (movie.media_type === "tv") {
+      navigate(`/tv/${movie.id}`);
+      return;
+    }
     setPlayingMovieId(movie.id);
     setPlayingMovieTitle(movie.title || movie.name || "");
+    setPlayingMovie(movie);
   }
 
   function handleSelect(movie: Movie) { navigate(`/movie/${movie.id}`); }
@@ -63,10 +70,22 @@ export default function Home() {
         {upcoming && <MovieRow title="Coming Soon" movies={upcoming} onSelect={handleSelect} onPlay={handlePlay} />}
 
         {popularTVMovies.length > 0 && (
-          <MovieRow title="📺 Popular TV Shows" movies={popularTVMovies} onSelect={handleSelectTV} onPlay={handleSelectTV} mediaType="tv" />
+          <MovieRow
+            title="📺 Popular TV Shows"
+            movies={popularTVMovies}
+            onSelect={handleSelectTV}
+            onPlay={handlePlay}
+            mediaType="tv"
+          />
         )}
         {topRatedTVMovies.length > 0 && (
-          <MovieRow title="⭐ Top Rated TV Shows" movies={topRatedTVMovies} onSelect={handleSelectTV} onPlay={handleSelectTV} mediaType="tv" />
+          <MovieRow
+            title="⭐ Top Rated TV Shows"
+            movies={topRatedTVMovies}
+            onSelect={handleSelectTV}
+            onPlay={handlePlay}
+            mediaType="tv"
+          />
         )}
       </div>
 
@@ -91,8 +110,9 @@ export default function Home() {
           url={getStreamUrl(playingMovieId)}
           title={playingMovieTitle}
           movieId={playingMovieId}
+          movie={playingMovie}
           resumeProgress={getResumeProgress(playingMovieId)}
-          onClose={() => setPlayingMovieId(null)}
+          onClose={() => { setPlayingMovieId(null); setPlayingMovie(undefined); }}
         />
       )}
     </div>
