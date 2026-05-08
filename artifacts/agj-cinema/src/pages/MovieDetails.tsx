@@ -48,7 +48,7 @@ export default function MovieDetails() {
     if (!movie) return;
     const wasAdded = !isFavorite(movie.id);
     toggleFavorite(movie);
-    showToast(wasAdded ? "✓ Added to Favorites" : "✗ Removed from Favorites", wasAdded ? "success" : "info");
+    showToast(wasAdded ? "\u2713 Added to Favorites" : "\u2717 Removed from Favorites", wasAdded ? "success" : "info");
   }
 
   if (isLoading) {
@@ -72,6 +72,7 @@ export default function MovieDetails() {
   const matchPercent = Math.round(movie.vote_average * 10);
   const cast = movie.credits?.cast?.slice(0, 8) ?? [];
   const savedProgress = getWatchProgress(movie.id);
+  const runtimeSeconds = movie.runtime ? movie.runtime * 60 : 7200;
 
   return (
     <div className="min-h-screen bg-[#141414] animate-fadeIn pb-24 md:pb-0">
@@ -93,11 +94,9 @@ export default function MovieDetails() {
               <img src={tmdb.imgUrl(movie.poster_path, "w342")} alt={movie.title} loading="lazy" className="w-56 lg:w-72 rounded-2xl shadow-2xl" />
             ) : <div className="w-56 lg:w-72 aspect-[2/3] bg-gray-800 rounded-2xl" />}
           </div>
-
           <div className="flex-1 min-w-0">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-2 leading-tight">{movie.title}</h1>
             {movie.tagline && <p className="text-white/50 italic text-base mb-3">{movie.tagline}</p>}
-
             <div className="flex flex-wrap items-center gap-3 text-sm mb-4">
               <div className="flex items-center gap-1">
                 <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
@@ -116,8 +115,6 @@ export default function MovieDetails() {
                 <span className="bg-cyan-400/20 text-cyan-400 text-xs px-2 py-0.5 rounded-full border border-cyan-400/30">{movie.status}</span>
               )}
             </div>
-
-            {/* Progress bar (if previously watched) */}
             {savedProgress > 60 && (
               <div className="mb-4 max-w-sm">
                 <div className="flex items-center justify-between text-xs text-white/40 mb-1">
@@ -125,11 +122,10 @@ export default function MovieDetails() {
                   <span>{Math.floor(savedProgress / 60)}m watched</span>
                 </div>
                 <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-cyan-400 rounded-full" style={{ width: `${Math.min(100, (savedProgress / 7200) * 100)}%` }} />
+                  <div className="h-full bg-cyan-400 rounded-full" style={{ width: `${Math.min(100, (savedProgress / runtimeSeconds) * 100)}%` }} />
                 </div>
               </div>
             )}
-
             {movie.genres && movie.genres.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
                 {movie.genres.map((g) => (
@@ -137,54 +133,24 @@ export default function MovieDetails() {
                 ))}
               </div>
             )}
-
             <p className="text-white/80 text-sm md:text-base leading-relaxed mb-5 max-w-2xl">{movie.overview}</p>
-
             <div className="flex items-center gap-3 mb-6 flex-wrap">
-              <button
-                onClick={() => setPlaying(true)}
-                className="flex items-center gap-2 bg-white text-black font-bold px-6 py-2.5 rounded-full hover:bg-white/90 transition-all duration-200 active:scale-95"
-              >
+              <button onClick={() => setPlaying(true)} className="flex items-center gap-2 bg-white text-black font-bold px-6 py-2.5 rounded-full hover:bg-white/90 transition-all duration-200 active:scale-95">
                 <Play className="w-5 h-5 fill-black" />
                 {savedProgress > 60 ? "Continue" : "Play"}
               </button>
-
-              {/* Favorites button */}
-              <button
-                onClick={handleFavorite}
-                className={`flex items-center gap-2 border font-semibold px-5 py-2.5 rounded-full transition-all duration-200 ${
-                  favored
-                    ? "bg-red-500/20 border-red-500 text-red-400 hover:bg-red-500/30"
-                    : isLoggedIn
-                    ? "glass border-white/20 text-white hover:bg-white/20"
-                    : "border-white/10 text-white/40"
-                }`}
-              >
-                {favored ? (
-                  <><Heart className="w-5 h-5 fill-red-400" /> Remove</>
-                ) : isLoggedIn ? (
-                  <><Plus className="w-5 h-5" /> Add to Favorites</>
-                ) : (
-                  <><LogIn className="w-4 h-4" /> Sign in</>
-                )}
+              <button onClick={handleFavorite} className={`flex items-center gap-2 border font-semibold px-5 py-2.5 rounded-full transition-all duration-200 ${favored ? "bg-red-500/20 border-red-500 text-red-400 hover:bg-red-500/30" : isLoggedIn ? "glass border-white/20 text-white hover:bg-white/20" : "border-white/10 text-white/40"}`}>
+                {favored ? (<><Heart className="w-5 h-5 fill-red-400" /> Remove</>) : isLoggedIn ? (<><Plus className="w-5 h-5" /> Add to Favorites</>) : (<><LogIn className="w-4 h-4" /> Sign in</>)}
               </button>
-
               <button className="w-11 h-11 rounded-full border border-white/30 flex items-center justify-center hover:border-white transition-colors">
                 <ThumbsUp className="w-5 h-5 text-white" />
               </button>
             </div>
-
             {trailer && (
-              <a
-                href={`https://www.youtube.com/watch?v=${trailer.key}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-sm font-medium transition-colors mb-6"
-              >
+              <a href={`https://www.youtube.com/watch?v=${trailer.key}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-sm font-medium transition-colors mb-6">
                 Watch Trailer on YouTube <ExternalLink className="w-4 h-4" />
               </a>
             )}
-
             {cast.length > 0 && (
               <div className="mb-2">
                 <h3 className="text-white/50 text-sm font-semibold uppercase tracking-wider mb-3">Cast</h3>
@@ -207,27 +173,13 @@ export default function MovieDetails() {
           </div>
         </div>
       </div>
-
       {similar && similar.length > 0 && (
         <div className="mt-10">
-          <MovieRow
-            title="More Like This"
-            movies={similar}
-            onSelect={(m: Movie) => navigate(`/movie/${m.id}`)}
-            onPlay={(m: Movie) => navigate(`/movie/${m.id}`)}
-          />
+          <MovieRow title="More Like This" movies={similar} onSelect={(m: Movie) => navigate(`/movie/${m.id}`)} onPlay={(m: Movie) => navigate(`/movie/${m.id}`)} />
         </div>
       )}
-
       {playing && (
-        <MoviePlayer
-          url={getStreamUrl()}
-          title={movie.title}
-          movieId={id}
-          movie={movie}
-          resumeProgress={getResumeProgress()}
-          onClose={() => setPlaying(false)}
-        />
+        <MoviePlayer url={getStreamUrl()} title={movie.title} movieId={id} movie={movie} resumeProgress={getResumeProgress()} onClose={() => setPlaying(false)} />
       )}
     </div>
   );
